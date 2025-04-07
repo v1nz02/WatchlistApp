@@ -13,10 +13,12 @@ import {
   Easing,
   SafeAreaView,
   StatusBar,
+  ScrollView,
 } from "react-native";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Swipeable, GestureHandlerRootView } from 'react-native-gesture-handler';
+
 
 const categories = ["Film", "Serie TV", "Anime","Giochi"];
 const OMDB_API_KEY = "ef20483f";
@@ -46,7 +48,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    console.log("filterCategory changed:", filterCategory);
+    console.log("Categoria filtro modificata:", filterCategory);
     Animated.sequence([
       Animated.timing(filterAnimation, {
         toValue: 0.7, // Scala più piccola per evidenziare il "pop out"
@@ -72,7 +74,7 @@ export default function App() {
         });
       }
     } catch (error) {
-      console.error('Error loading watchlist:', error);
+      console.error('Errore nel caricamento della watchlist:', error);
     }
   };
 
@@ -80,7 +82,7 @@ export default function App() {
     try {
       await AsyncStorage.setItem('watchlist', JSON.stringify(newWatchlist));
     } catch (error) {
-      console.error('Error saving watchlist:', error);
+      console.error('Errore nel salvataggio della watchlist:', error);
     }
   };
 
@@ -88,31 +90,66 @@ export default function App() {
     if (selectedCategory === "Film" || selectedCategory === "Serie TV") {
       setIsLoadingPoster(true);
       try {
-        const type = selectedCategory === "Film" ? "movie" : "series";
-        const response = await fetch(
-          `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&t=${encodeURIComponent(title)}&type=${type}&plot=full`
+        const type = selectedCategory === "Film" ? "movie" : "tv";
+    
+        // === TMDb - Italian Search ===
+        const tmdbSearch = await fetch(
+          `https://api.themoviedb.org/3/search/${type}?api_key=73130b3a08f47771a9fb07f885ee9286&query=${encodeURIComponent(title)}&language=it-IT`
         );
-        const data = await response.json();
-        if (data.Response === "True") {
-          setPosterUrl(data.Poster !== "N/A" ? data.Poster : null);
+        const tmdbData = await tmdbSearch.json();
+    
+        if (tmdbData.results && tmdbData.results.length > 0) {
+          const item = tmdbData.results[0];
+    
+          const tmdbDetails = await fetch(
+            `https://api.themoviedb.org/3/${type}/${item.id}?api_key=73130b3a08f47771a9fb07f885ee9286&language=it-IT`
+          );
+          const details = await tmdbDetails.json();
+    
+          const posterPath = item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null;
+    
+          setPosterUrl(posterPath);
+    
           return {
-            posterUrl: data.Poster !== "N/A" ? data.Poster : null,
-            year: data.Year,
-            rating: data.imdbRating,
-            totalSeasons: data.totalSeasons,
-            genre: data.Genre,
-            actors: data.Actors,
-            plot: data.Plot,
+            posterUrl: posterPath,
+            year: (item.release_date || item.first_air_date || "").slice(0, 4),
+            rating: item.vote_average,
+            totalSeasons: type === "tv" ? details.number_of_seasons : undefined,
+            genre: details.genres.map((g) => g.name).join(", "),
+            actors: undefined,
+            plot: details.overview,
           };
         }
+    
+        // === Fallback: OMDb ===
+        const fallbackType = selectedCategory === "Film" ? "movie" : "series";
+        const omdb = await fetch(
+          `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&t=${encodeURIComponent(title)}&type=${fallbackType}&plot=full`
+        );
+        const omdbData = await omdb.json();
+    
+        if (omdbData.Response === "True") {
+          setPosterUrl(omdbData.Poster !== "N/A" ? omdbData.Poster : null);
+          return {
+            posterUrl: omdbData.Poster !== "N/A" ? omdbData.Poster : null,
+            year: omdbData.Year,
+            rating: omdbData.imdbRating,
+            totalSeasons: omdbData.totalSeasons,
+            genre: omdbData.Genre,
+            actors: omdbData.Actors,
+            plot: omdbData.Plot,
+          };
+        }
+    
         return null;
       } catch (error) {
-        console.error("Error fetching media info:", error);
+        console.error("Errore TMDb o OMDb:", error);
         return null;
       } finally {
         setIsLoadingPoster(false);
       }
-    } else if (selectedCategory === "Giochi") {
+    }
+    else if (selectedCategory === "Giochi") {
       try {
         const response = await fetch(
           `https://api.rawg.io/api/games?search=${encodeURIComponent(title)}&key=${RAWG_API_KEY}`
@@ -131,7 +168,7 @@ export default function App() {
         }
         return null;
       } catch (error) {
-        console.error("Error fetching game info:", error);
+        console.error("Errore nel recupero info gioco:", error);
         return null;
       }
     } else if (selectedCategory === "Anime") {
@@ -154,7 +191,7 @@ export default function App() {
         }
         return null;
       } catch (error) {
-        console.error("Error fetching anime info:", error);
+        console.error("Errore nel recupero info anime:", error);
         return null;
       } finally {
         setIsLoadingPoster(false);
@@ -325,33 +362,38 @@ export default function App() {
       animatedValues[item.id] = new Animated.Value(1);
     }
 
+    // Utilizziamo un itemHeight adeguato
     const itemHeight = 200;
     const inputRange = [
       -1,
       0,
       itemHeight * index,
-      itemHeight * (index + 1),
-      itemHeight * (index + 2)
+      itemHeight * (index + 0.5),
+      itemHeight * (index + 1)
     ];
 
+    // Opacità meno aggressiva
     const opacity = scrollY.interpolate({
       inputRange,
-      outputRange: [1, 1, 1, 0.5, 0],
+      outputRange: [1, 1, 1, 0.8, 0.5],
       extrapolate: 'clamp',
     });
 
+    // Scala leggermente variabile per dare effetto di profondità
     const scale = scrollY.interpolate({
       inputRange,
-      outputRange: [1, 1, 1, 0.95, 0.9],
+      outputRange: [1, 1, 1, 0.98, 0.95],
       extrapolate: 'clamp',
     });
 
+    // Leggera traslazione verticale per un effetto parallax sottile
     const translateY = scrollY.interpolate({
       inputRange,
-      outputRange: [0, 0, 0, -10, -20],
+      outputRange: [0, 0, 0, -5, -10],
       extrapolate: 'clamp',
     });
 
+    // Combiniamo le animazioni insieme con eventuale animazione di entrata laterale
     const animatedStyle = {
       opacity: Animated.multiply(animatedValues[item.id], opacity),
       transform: [
@@ -359,7 +401,7 @@ export default function App() {
           translateX: animatedValues[item.id].interpolate({
             inputRange: [0, 1],
             outputRange: [-100, 0],
-          })
+          }),
         },
         { 
           scale: Animated.multiply(
@@ -376,72 +418,56 @@ export default function App() {
 
     return (
       <Animated.View style={[styles.itemWrapper, animatedStyle]}>
+        {/* Resto del layout dell'item, ad esempio: */}
         <Swipeable
           renderRightActions={(progress, dragX) => renderRightActions(progress, dragX, item.id)}
           onSwipeableRightOpen={() => removeItem(item.id)}
-          onSwipeableRightWillOpen={() => {
-            Animated.timing(animatedValues[item.id], {
-              toValue: 0,
-              duration: 300,
-              useNativeDriver: true,
-              easing: Easing.in(Easing.ease),
-            }).start();
-          }}
           rightThreshold={50}
-          friction={2.5}
-          overshootFriction={12}
-          enableTrackpadTwoFingerGesture={false}
           containerStyle={styles.swipeableContainer}
           useNativeAnimations={true}
-          shouldActivateOnStart={false}
-          direction="right"
-          dragOffsetFromLeftEdge={25}
         >
           <TouchableOpacity activeOpacity={0.9} onPress={() => openDetail(item)}>
             <View style={styles.item}>
               <View style={styles.itemContent}>
-                <View style={styles.itemHeader}>
-                  <View style={styles.titleContainer}>
-                    <Text style={styles.title}>{item.title}</Text>
-                    {item.year && (
-                      <Text style={styles.year}>({item.year})</Text>
-                    )}
-                  </View>
-                  <View style={styles.contentRow}>
-                    {item.posterUrl ? (
-                      <Image
-                        source={{ uri: item.posterUrl }}
-                        style={styles.poster}
-                        resizeMode="cover"
-                      />
-                    ) : null}
-                    <View style={styles.itemTextContent}>
-                      <View style={styles.itemTopRow}>
-                        {item.rating && (
-                          <View style={styles.ratingContainer}>
-                            <MaterialIcons name="star" size={16} color="#FFD700" />
-                            <Text style={styles.rating}>{item.rating}</Text>
-                          </View>
-                        )}
-                        {item.totalSeasons && (
-                          <View style={styles.seasonsContainer}>
-                            <MaterialIcons name="tv" size={16} color="#aaa" />
-                            <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
-                          </View>
-                        )}
-                        <Text style={styles.itemCategory}>{item.category}</Text>
-                      </View>
-                      {item.genre && (
-                        <View style={styles.genreContainer}>
-                          <Text style={styles.genre}>{item.genre}</Text>
+                {/* ...contenuto dell'item... */}
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  {item.year && <Text style={styles.year}>({item.year})</Text>}
+                </View>
+                <View style={styles.contentRow}>
+                  {item.posterUrl && (
+                    <Image
+                      source={{ uri: item.posterUrl }}
+                      style={styles.poster}
+                      resizeMode="cover"
+                    />
+                  )}
+                  <View style={styles.itemTextContent}>
+                    <View style={styles.itemTopRow}>
+                      {item.rating && (
+                        <View style={styles.ratingContainer}>
+                          <MaterialIcons name="star" size={16} color="#FFD700" />
+                          <Text style={styles.rating}>{item.rating}</Text>
                         </View>
                       )}
-                      {item.description && (
-                        <Text style={styles.description} numberOfLines={3}>
-                          {item.description}
-                        </Text>
+                      {item.totalSeasons && (
+                        <View style={styles.seasonsContainer}>
+                          <MaterialIcons name="tv" size={16} color="#aaa" />
+                          <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
+                        </View>
                       )}
+                      <Text style={styles.itemCategory}>{item.category}</Text>
                     </View>
+                    {item.genre && (
+                      <View style={styles.genreContainer}>
+                        <Text style={styles.genre}>{item.genre}</Text>
+                      </View>
+                    )}
+                    {item.description && (
+                      <Text style={styles.description} numberOfLines={3}>
+                        {item.description}
+                      </Text>
+                    )}
                   </View>
                 </View>
               </View>
@@ -600,19 +626,23 @@ export default function App() {
                     resizeMode="cover"
                   />
                 )}
-                <Text style={{ color: "#aaa", marginVertical: 8 }}>{detailItem?.description}</Text>
+                <ScrollView style={{ maxHeight: 150 }} showsVerticalScrollIndicator={false}>
+                  <Text style={{ color: "#aaa", marginVertical: 8 }}>
+                    {detailItem?.description}
+                  </Text>
+                </ScrollView>
                 {detailItem?.year && (
-                  <Text style={{ color: "#fff" }}>Year: {detailItem.year}</Text>
+                  <Text style={{ color: "#fff" }}>Anno: {detailItem.year}</Text>
                 )}
                 {detailItem?.rating && (
-                  <Text style={{ color: "#FFD700" }}>Rating: {detailItem.rating}</Text>
+                  <Text style={{ color: "#FFD700" }}>Recensione: {detailItem.rating}</Text>
                 )}
                 {detailItem?.genre && (
-                  <Text style={{ color: "#aaa" }}>Genre: {detailItem.genre}</Text>
+                  <Text style={{ color: "#aaa" }}>Genere: {detailItem.genre}</Text>
                 )}
                 <TouchableOpacity style={[styles.cancelButton, { marginTop: 20 }]} onPress={closeDetail}>
                   <Ionicons name="arrow-back" size={24} color="#fff" />
-                  <Text style={styles.buttonText}>Close</Text>
+                  <Text style={styles.buttonText}>Chiudi</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -703,7 +733,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: "#fff",
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "600",
   },
   year: {

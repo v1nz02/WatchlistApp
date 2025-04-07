@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "zWatch",
-    "slug": "zWatch",
+    "slug": "WatchlistApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
