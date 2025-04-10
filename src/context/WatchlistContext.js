@@ -11,6 +11,7 @@ export const WatchlistProvider = ({ children }) => {
   const animatedValues = useRef({}).current;
   const filterAnimation = useRef(new Animated.Value(1)).current;
   const listTransitionAnim = useRef(new Animated.Value(1)).current;
+  const flatListRef = useRef(null);
 
   useEffect(() => {
     loadWatchlistData();
@@ -86,6 +87,18 @@ export const WatchlistProvider = ({ children }) => {
     setWatchlist(newWatchlist);
     saveWatchlist(newWatchlist);
     
+    // Reset filter to show the new item if in a different category
+    if (filterCategory !== null && filterCategory !== category) {
+      setFilterCategory(null);
+    }
+    
+    // Scroll to top to show the new item
+    if (flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }, 300);
+    }
+    
     Animated.timing(animatedValues[id], {
       toValue: 1,
       duration: 600,
@@ -149,6 +162,7 @@ export const WatchlistProvider = ({ children }) => {
     filterAnimation,
     listTransitionAnim,
     animatedValues,
+    flatListRef,
     addItem,
     removeItem,
     setFilterCategory,

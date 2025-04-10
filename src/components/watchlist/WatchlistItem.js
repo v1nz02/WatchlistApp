@@ -48,12 +48,10 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
           outputRange: [-100, 0],
         }),
       },
+      // Simplified scale without the breathing effect
       { 
         scale: Animated.multiply(
-          animatedValues[item.id].interpolate({
-            inputRange: [0, 0.8, 1],
-            outputRange: [0.8, 1.05, 1],
-          }),
+          animatedValues[item.id],
           scale
         )
       },
