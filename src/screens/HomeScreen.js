@@ -79,9 +79,13 @@ const HomeScreen = () => {
                 [{ nativeEvent: { contentOffset: { y: scrollY } } }],
                 { useNativeDriver: true }
               )}
-              scrollEventThrottle={8}
-              contentContainerStyle={{ paddingBottom: 100 }}
-              decelerationRate="fast"
+              scrollEventThrottle={4} // Ridotto da 8 a 4 per un tracking più preciso dello scrolling
+              contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }} // Aggiunto padding superiore
+              decelerationRate="normal" // Cambio da "fast" a "normal" per uno scrolling più naturale
+              snapToAlignment="start" // Aggiunto per migliorare lo snapping quando ci si ferma
+              initialNumToRender={5} // Rendering iniziale di più item per prestazioni migliori
+              maxToRenderPerBatch={10} // Numero massimo di item da renderizzare in un batch
+              windowSize={11} // Aumentato da default a 11 per migliorare le prestazioni di scrolling
               layoutAnimation={{
                 duration: 300,
                 create: {

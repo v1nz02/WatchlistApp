@@ -24,38 +24,45 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
     itemHeight * (index + 2)
   ];
 
-  // Animazione opacità più graduale
+  // Animazione opacità più pronunciata
   const opacity = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 1, 0.85, 0.7, 0.5],
+    outputRange: [1, 1, 1, 1, 0.8, 0.6, 0.4], // Valori più bassi per un effetto più evidente
     extrapolate: 'clamp',
   });
 
-  // Miglioramento dello scale con effetto più dinamico
+  // Effetto di scaling più pronunciato
   const scale = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 1, 0.97, 0.94, 0.92],
+    outputRange: [1, 1, 1, 1, 0.95, 0.9, 0.85], // Riduzione di scala più evidente
     extrapolate: 'clamp',
   });
 
-  // Movimento verticale migliorato
+  // Movimento verticale più accentuato
   const translateY = scrollY.interpolate({
     inputRange,
-    outputRange: [0, 0, 0, 0, -8, -15, -20],
+    outputRange: [0, 0, 0, 0, -15, -30, -45], // Spostamento verticale maggiore
     extrapolate: 'clamp',
   });
 
-  // Aggiunta di una leggera rotazione per un effetto 3D
+  // Rotazione più evidente per un effetto 3D più pronunciato
   const rotate = scrollY.interpolate({
     inputRange,
-    outputRange: ['0deg', '0deg', '0deg', '0deg', '0.5deg', '1deg', '1.5deg'],
+    outputRange: ['0deg', '0deg', '0deg', '0deg', '1deg', '2deg', '3deg'], // Rotazione più accentuata
     extrapolate: 'clamp',
   });
 
-  // Shadow effect che cambia durante lo scroll
+  // Rotazione Y per un effetto ancora più pronunciato
+  const rotateY = scrollY.interpolate({
+    inputRange,
+    outputRange: ['0deg', '0deg', '0deg', '0deg', '-1deg', '-2deg', '-3deg'], // Leggera rotazione sull'asse Y
+    extrapolate: 'clamp',
+  });
+
+  // Shadow effect più evidente durante lo scroll
   const shadowOpacity = scrollY.interpolate({
     inputRange,
-    outputRange: [0.25, 0.25, 0.25, 0.25, 0.2, 0.15, 0.1],
+    outputRange: [0.25, 0.25, 0.25, 0.25, 0.35, 0.45, 0.1], // Ombre più evidenti durante la transizione
     extrapolate: 'clamp',
   });
 
@@ -71,6 +78,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
       { scale: Animated.multiply(animatedValues[item.id], scale) },
       { translateY },
       { rotateX: rotate },
+      { rotateY: rotateY }, // Aggiunto rotateY per effetto 3D più evidente
       { perspective: 1000 } // Applicato direttamente qui per migliorare l'effetto 3D
     ],
     shadowOpacity: shadowOpacity,
@@ -166,10 +174,10 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
 const styles = StyleSheet.create({
   itemWrapper: {
-    marginVertical: 6,
+    marginVertical: 10, // Aumentato per dare più spazio alle animazioni
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 8 }, // Ombre più pronunciate
+    shadowRadius: 12,
   },
   swipeableContainer: {
     backgroundColor: 'transparent',
@@ -177,12 +185,12 @@ const styles = StyleSheet.create({
   item: {
     backgroundColor: "#1f1f1f",
     marginVertical: 4,
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16, // Bordi più arrotondati
+    elevation: 8, // Elevazione maggiore per Android
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 }, // Ombra più pronunciata
+    shadowOpacity: 0.3, // Opacità dell'ombra aumentata
+    shadowRadius: 6, // Raggio dell'ombra aumentato
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#333',
