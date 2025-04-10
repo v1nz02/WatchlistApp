@@ -1,0 +1,1 @@
+export const MEDIA_CATEGORIES = ["Film", "Serie TV", "Anime", "Giochi"];
