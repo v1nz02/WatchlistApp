@@ -10,21 +10,43 @@ export const WatchlistProvider = ({ children }) => {
   const [filterCategory, setFilterCategory] = useState(null);
   const animatedValues = useRef({}).current;
   const filterAnimation = useRef(new Animated.Value(1)).current;
-  
+  const listTransitionAnim = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     loadWatchlistData();
   }, []);
 
   useEffect(() => {
+    // Run animations when the filter category changes
+    Animated.sequence([
+      // First, scale down the list slightly
+      Animated.timing(listTransitionAnim, {
+        toValue: 0.96,
+        duration: 200,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+      
+      // Then scale up and add a small bounce effect
+      Animated.spring(listTransitionAnim, {
+        toValue: 1,
+        useNativeDriver: true,
+        friction: 8,
+        tension: 40,
+      })
+    ]).start();
+
+    // Also run the filter button animation
     Animated.sequence([
       Animated.timing(filterAnimation, {
-        toValue: 0.7,
-        duration: 300,
+        toValue: 0.9,
+        duration: 200,
         useNativeDriver: true,
       }),
       Animated.spring(filterAnimation, {
         toValue: 1,
         friction: 3,
+        tension: 40,
         useNativeDriver: true,
       }),
     ]).start();
@@ -99,20 +121,12 @@ export const WatchlistProvider = ({ children }) => {
         
         Animated.sequence([
           Animated.delay(delay),
-          Animated.parallel([
-            Animated.spring(item.animatedValue, {
-              toValue: 1,
-              useNativeDriver: true,
-              tension: 50,
-              friction: 7,
-            }),
-            Animated.timing(item.animatedValue, {
-              toValue: 1,
-              duration: 400,
-              useNativeDriver: true,
-              easing: Easing.out(Easing.cubic),
-            })
-          ])
+          Animated.spring(item.animatedValue, {
+            toValue: 1,
+            useNativeDriver: true,
+            tension: 50,
+            friction: 7,
+          })
         ]).start();
       });
 
@@ -133,6 +147,7 @@ export const WatchlistProvider = ({ children }) => {
     filteredWatchlist: getFilteredWatchlist(),
     filterCategory,
     filterAnimation,
+    listTransitionAnim,
     animatedValues,
     addItem,
     removeItem,

@@ -20,7 +20,7 @@ import DetailModal from '../components/watchlist/DetailModal';
 const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
 
 const HomeScreen = () => {
-  const { filteredWatchlist, filterAnimation } = useContext(WatchlistContext);
+  const { filteredWatchlist, filterAnimation, listTransitionAnim } = useContext(WatchlistContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
@@ -50,7 +50,14 @@ const HomeScreen = () => {
           <CategoryFilter />
           
           <Animated.View 
-            style={{ transform: [{ scale: filterAnimation }], flex: 1 }}  
+            style={{ 
+              transform: [
+                { scale: filterAnimation },
+                { scale: listTransitionAnim }
+              ], 
+              opacity: listTransitionAnim,
+              flex: 1 
+            }}  
             pointerEvents="box-none"
           >
             <AnimatedFlatList
@@ -73,6 +80,19 @@ const HomeScreen = () => {
               scrollEventThrottle={8}
               contentContainerStyle={{ paddingBottom: 100 }}
               decelerationRate="fast"
+              layoutAnimation={{
+                duration: 300,
+                create: {
+                  type: 'spring',
+                  property: 'opacity',
+                  springDamping: 0.7,
+                },
+                delete: {
+                  type: 'spring',
+                  property: 'opacity',
+                  springDamping: 0.7,
+                },
+              }}
             />
           </Animated.View>
 
