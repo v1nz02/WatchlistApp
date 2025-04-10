@@ -13,29 +13,49 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
   // Calcoli per le animazioni
   const itemHeight = 200;
+  // Correzione: Assicuriamo che l'inputRange sia sempre crescente
   const inputRange = [
     -1,
     0,
+    itemHeight * Math.max(0, index - 0.3), // Garantisce che sia sempre >= 0
     itemHeight * index,
     itemHeight * (index + 0.5),
-    itemHeight * (index + 1)
+    itemHeight * (index + 1),
+    itemHeight * (index + 2)
   ];
 
+  // Animazione opacità più graduale
   const opacity = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 0.8, 0.5],
+    outputRange: [1, 1, 1, 1, 0.85, 0.7, 0.5],
     extrapolate: 'clamp',
   });
 
+  // Miglioramento dello scale con effetto più dinamico
   const scale = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 0.98, 0.95],
+    outputRange: [1, 1, 1, 1, 0.97, 0.94, 0.92],
     extrapolate: 'clamp',
   });
 
+  // Movimento verticale migliorato
   const translateY = scrollY.interpolate({
     inputRange,
-    outputRange: [0, 0, 0, -5, -10],
+    outputRange: [0, 0, 0, 0, -8, -15, -20],
+    extrapolate: 'clamp',
+  });
+
+  // Aggiunta di una leggera rotazione per un effetto 3D
+  const rotate = scrollY.interpolate({
+    inputRange,
+    outputRange: ['0deg', '0deg', '0deg', '0deg', '0.5deg', '1deg', '1.5deg'],
+    extrapolate: 'clamp',
+  });
+
+  // Shadow effect che cambia durante lo scroll
+  const shadowOpacity = scrollY.interpolate({
+    inputRange,
+    outputRange: [0.25, 0.25, 0.25, 0.25, 0.2, 0.15, 0.1],
     extrapolate: 'clamp',
   });
 
@@ -48,15 +68,12 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
           outputRange: [-100, 0],
         }),
       },
-      // Simplified scale without the breathing effect
-      { 
-        scale: Animated.multiply(
-          animatedValues[item.id],
-          scale
-        )
-      },
-      { translateY }
+      { scale: Animated.multiply(animatedValues[item.id], scale) },
+      { translateY },
+      { rotateX: rotate },
+      { perspective: 1000 } // Applicato direttamente qui per migliorare l'effetto 3D
     ],
+    shadowOpacity: shadowOpacity,
   };
 
   const renderRightActions = (progress, dragX) => {
@@ -150,7 +167,9 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 const styles = StyleSheet.create({
   itemWrapper: {
     marginVertical: 6,
-    transform: [{ perspective: 1000 }],
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 6,
   },
   swipeableContainer: {
     backgroundColor: 'transparent',
@@ -167,7 +186,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#333',
-    transform: [{ scale: 1 }],
+    backfaceVisibility: 'hidden', // Migliora gli effetti 3D
   },
   itemContent: {
     padding: 12,

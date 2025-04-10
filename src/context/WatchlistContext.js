@@ -114,7 +114,7 @@ export const WatchlistProvider = ({ children }) => {
     
     Animated.timing(animatedValues[id], {
       toValue: 0,
-      duration: 300,
+      duration: 350, // Durata leggermente aumentata per un'animazione più fluida
       useNativeDriver: true,
       easing: Easing.inOut(Easing.ease),
     }).start(() => {
@@ -129,16 +129,17 @@ export const WatchlistProvider = ({ children }) => {
       });
 
       remainingItems.forEach((item, index) => {
-        item.animatedValue.setValue(0.8);
-        const delay = index * 50;
+        item.animatedValue.setValue(0.85); // Valore iniziale più alto per un'animazione più sottile
+        const delay = index * 40; // Delay ridotto per un'animazione più veloce
         
         Animated.sequence([
           Animated.delay(delay),
           Animated.spring(item.animatedValue, {
             toValue: 1,
             useNativeDriver: true,
-            tension: 50,
-            friction: 7,
+            tension: 60, // Tensione aumentata
+            friction: 6,  // Attrito ridotto per un leggero rimbalzo
+            overshootClamping: false, // Consente un leggero overshoot per un effetto più naturale
           })
         ]).start();
       });
