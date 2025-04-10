@@ -44,7 +44,10 @@ const HomeScreen = () => {
       <GestureHandlerRootView style={{ flex: 1 }}>
         <View style={styles.container}>
           <View style={styles.headerContainer}>
-            <Text style={styles.header}>zWatch</Text>
+            <View style={styles.logoContainer}>
+              <Ionicons name="film" size={34} color="#E50914" style={styles.logoIcon} />
+              <Text style={styles.header}>zWatch</Text>
+            </View>
           </View>
 
           <CategoryFilter />
@@ -131,19 +134,30 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   headerContainer: {
-    alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 10, // Ridotto da 20 a 10
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoIcon: {
+    marginRight: 10,
+    transform: [{ rotateY: '180deg' }],
+    alignSelf: 'center',
   },
   header: {
     color: "#E50914",
-    fontSize: 32,
-    fontWeight: "bold",
-    fontStyle: "italic",
+    fontSize: 38,
+    fontWeight: "800",
     textAlign: "center",
-    textShadowColor: "#000",
+    fontFamily: Platform.OS === "ios" ? "Avenir-Black" : "sans-serif-medium",
+    letterSpacing: 0.8,
+    textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 3,
-    fontFamily: Platform.OS === "ios" ? "Georgia-Italic" : "serif",
+    textShadowRadius: 2,
   },
   addButton: {
     position: "absolute",
