@@ -117,7 +117,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
       <Swipeable
         renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
         onSwipeableRightOpen={() => removeItem(item.id)}
-        rightThreshold={50}
+        rightThreshold={90}
         containerStyle={styles.swipeableContainer}
         useNativeAnimations={true}
       >

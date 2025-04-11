@@ -24,6 +24,7 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
+  const [editItem, setEditItem] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -35,6 +36,12 @@ const HomeScreen = () => {
   const closeDetail = () => {
     setDetailModalVisible(false);
     setDetailItem(null);
+  };
+
+  const handleEdit = (item) => {
+    setEditItem(item);
+    setDetailModalVisible(false);
+    setModalVisible(true);
   };
 
   return (
@@ -111,13 +118,18 @@ const HomeScreen = () => {
 
           <AddItemModal 
             visible={modalVisible} 
-            onClose={() => setModalVisible(false)} 
+            onClose={() => {
+              setModalVisible(false);
+              setEditItem(null);
+            }} 
+            editItem={editItem}
           />
 
           <DetailModal 
             item={detailItem}
             visible={detailModalVisible}
             onClose={closeDetail}
+            onEdit={handleEdit}
           />
         </View>
       </GestureHandlerRootView>

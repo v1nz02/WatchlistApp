@@ -10,8 +10,14 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const DetailModal = ({ item, visible, onClose }) => {
+const DetailModal = ({ item, visible, onClose, onEdit }) => {
   if (!item) return null;
+  
+  const handleEdit = () => {
+    if (onEdit && typeof onEdit === 'function') {
+      onEdit(item);
+    }
+  };
   
   return (
     <Modal
@@ -22,7 +28,12 @@ const DetailModal = ({ item, visible, onClose }) => {
     >
       <View style={styles.modalOverlay}>
         <View style={[styles.modalView, { maxHeight: "80%" }]}>
-          <Text style={styles.modalTitle}>{item.title}</Text>
+          <View style={styles.header}>
+            <Text style={styles.modalTitle}>{item.title}</Text>
+            <TouchableOpacity style={styles.editButton} onPress={handleEdit}>
+              <Ionicons name="pencil" size={22} color="#fff" />
+            </TouchableOpacity>
+          </View>
           {item.posterUrl && (
             <Image
               source={{ uri: item.posterUrl }}
@@ -75,11 +86,19 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 5,
   },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   modalTitle: {
     color: "#fff",
     fontSize: 20,
     fontWeight: "bold",
     marginBottom: 10,
+  },
+  editButton: {
+    padding: 10,
   },
   posterImage: {
     width: 120, 

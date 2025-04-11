@@ -1,4 +1,4 @@
-import React, { useState, useRef, useContext } from 'react';
+import React, { useState, useRef, useContext, useEffect } from 'react';
 import { 
   StyleSheet, 
   View, 
@@ -12,14 +12,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { MEDIA_CATEGORIES } from '../../constants/categories';
 import { WatchlistContext } from '../../context/WatchlistContext';
 
-const AddItemModal = ({ visible, onClose }) => {
-  const { addItem } = useContext(WatchlistContext);
+const AddItemModal = ({ visible, onClose, editItem }) => {
+  const { addItem, updateItem } = useContext(WatchlistContext);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedCategory, setSelectedCategory] = useState(MEDIA_CATEGORIES[0]);
   const [isLoading, setIsLoading] = useState(false);
   
   const modalAnimation = useRef(new Animated.Value(0)).current;
+
+  // Carica i dati dell'elemento quando è in modalità modifica
+  useEffect(() => {
+    if (editItem) {
+      setTitle(editItem.title || '');
+      setDescription(editItem.description || '');
+      setSelectedCategory(editItem.category || MEDIA_CATEGORIES[0]);
+    } else {
+      setTitle('');
+      setDescription('');
+      setSelectedCategory(MEDIA_CATEGORIES[0]);
+    }
+  }, [editItem]);
 
   React.useEffect(() => {
     if (visible) {
@@ -40,18 +53,28 @@ const AddItemModal = ({ visible, onClose }) => {
       duration: 300,
       useNativeDriver: true,
     }).start(() => {
-      setTitle('');
-      setDescription('');
-      setSelectedCategory(MEDIA_CATEGORIES[0]);
       onClose();
     });
   };
 
-  const handleAddItem = async () => {
+  const handleSaveItem = async () => {
     if (!title.trim()) return;
     
     setIsLoading(true);
-    await addItem(title, description, selectedCategory);
+    
+    if (editItem) {
+      // Modifica elemento esistente
+      await updateItem({
+        ...editItem,
+        title,
+        description,
+        category: selectedCategory
+      });
+    } else {
+      // Aggiungi nuovo elemento
+      await addItem(title, description, selectedCategory);
+    }
+    
     setIsLoading(false);
     handleClose();
   };
@@ -84,7 +107,9 @@ const AddItemModal = ({ visible, onClose }) => {
           ]}
         >
           <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>Aggiungi elemento</Text>
+            <Text style={styles.modalTitle}>
+              {editItem ? 'Modifica elemento' : 'Aggiungi elemento'}
+            </Text>
           </View>
           <TextInput
             style={styles.input}
@@ -129,7 +154,7 @@ const AddItemModal = ({ visible, onClose }) => {
             </TouchableOpacity>
             <TouchableOpacity 
               style={styles.saveButton} 
-              onPress={handleAddItem}
+              onPress={handleSaveItem}
               disabled={isLoading}
             >
               <Ionicons name="save-outline" size={24} color="#fff" />

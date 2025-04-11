@@ -66,12 +66,19 @@ export const fetchGameInfo = async (title) => {
     const data = await response.json();
     if (data.results && data.results.length > 0) {
       const game = data.results[0];
+      
+      // Effettua una seconda chiamata per ottenere i dettagli completi del gioco, inclusa la descrizione
+      const detailResponse = await fetch(
+        `https://api.rawg.io/api/games/${game.id}?key=${RAWG_API_KEY}`
+      );
+      const gameDetails = await detailResponse.json();
+      
       return {
         posterUrl: game.background_image && game.background_image !== "N/A" ? game.background_image : null,
         year: game.released ? game.released.substring(0, 4) : "",
         rating: game.rating,
         genre: game.genres ? game.genres.map((g) => g.name).join(", ") : "",
-        plot: "", // RAWG non fornisce una sinossi
+        plot: gameDetails.description_raw || gameDetails.description || "", // Usa description_raw per testo non formattato o description come fallback
       };
     }
     return null;

@@ -150,6 +150,22 @@ export const WatchlistProvider = ({ children }) => {
     });
   };
 
+  const updateItem = async (updatedItem) => {
+    const newWatchlist = watchlist.map(item => 
+      item.id === updatedItem.id ? updatedItem : item
+    );
+    
+    setWatchlist(newWatchlist);
+    saveWatchlist(newWatchlist);
+    
+    // Reset filter se necessario per mostrare l'elemento aggiornato
+    if (filterCategory !== null && filterCategory !== updatedItem.category) {
+      setFilterCategory(null);
+    }
+    
+    return updatedItem.id;
+  };
+
   const getFilteredWatchlist = () => {
     return filterCategory
       ? watchlist.filter((item) => item.category === filterCategory)
@@ -166,6 +182,7 @@ export const WatchlistProvider = ({ children }) => {
     flatListRef,
     addItem,
     removeItem,
+    updateItem,
     setFilterCategory,
   };
 
