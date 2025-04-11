@@ -31,7 +31,7 @@ const CategoryFilter = () => {
 
 const styles = StyleSheet.create({
   filterContainer: {
-    marginBottom: 10,
+    marginBottom: 5,
     backgroundColor: '#1f1f1f',
     borderRadius: 16,
     padding: 16,

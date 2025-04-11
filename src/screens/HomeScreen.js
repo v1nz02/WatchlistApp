@@ -150,6 +150,7 @@ const styles = StyleSheet.create({
     marginRight: 10,
     transform: [{ rotateY: '180deg' }],
     alignSelf: 'center',
+    paddingTop: 13,
   },
   header: {
     color: "#E50914",
