@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext } from 'react';
+import React, { useRef, useState, useContext, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -8,6 +8,7 @@ import {
   StatusBar,
   SafeAreaView,
   Platform,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,6 +19,7 @@ import AddItemModal from '../components/watchlist/AddItemModal';
 import DetailModal from '../components/watchlist/DetailModal';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
+const AnimatedIcon = Animated.createAnimatedComponent(Ionicons);
 
 const HomeScreen = () => {
   const { filteredWatchlist, filterAnimation, listTransitionAnim, flatListRef } = useContext(WatchlistContext);
@@ -27,6 +29,64 @@ const HomeScreen = () => {
   const [editItem, setEditItem] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  // Effetto di rotazione per rendere l'icona "corsiva"
+  const rotate = scrollY.interpolate({
+    inputRange: [0, 50, 100, 150],
+    outputRange: ['0deg', '-10deg', '-20deg', '-15deg'],
+    extrapolate: 'clamp'
+  });
+
+  // Effetto di scala per far "pulsare" leggermente l'icona durante lo scroll
+  const scale = scrollY.interpolate({
+    inputRange: [0, 75, 150],
+    outputRange: [1, 1.2, 1],
+    extrapolate: 'clamp'
+  });
+
+  // Animazione continua per l'effetto di "corsivo" anche quando non si scorre
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(rotateAnim, {
+          toValue: 0,
+          duration: 1500,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        })
+      ])
+    ).start();
+
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(scaleAnim, {
+          toValue: 1.1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 1200,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        })
+      ])
+    ).start();
+  }, []);
+
+  const idleRotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '-10deg']
+  });
 
   const openDetail = (item) => {
     setDetailItem(item);
@@ -51,7 +111,18 @@ const HomeScreen = () => {
         <View style={styles.container}>
           <View style={styles.headerContainer}>
             <View style={styles.logoContainer}>
-              <Ionicons name="film" size={34} color="#E50914" style={styles.logoIcon} />
+              <View style={styles.logoIconWrapper}>
+                <Animated.View 
+                  style={{
+                    transform: [
+                      { rotate: scrollY._value > 0 ? rotate : idleRotation },
+                      { scale: scrollY._value > 0 ? scale : scaleAnim }
+                    ]
+                  }}
+                >
+                  <AnimatedIcon name="play" size={40} color="#E50914" style={styles.logoIcon} />
+                </Animated.View>
+              </View>
               <Text style={styles.header}>zWatch</Text>
             </View>
           </View>
@@ -158,22 +229,31 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  logoIcon: {
+  logoIconWrapper: {
     marginRight: 10,
-    transform: [{ rotateY: '180deg' }],
+    elevation: 5,
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 5,
+  },
+  logoIcon: {
     alignSelf: 'center',
-    paddingTop: 13,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 2,
   },
   header: {
     color: "#E50914",
-    fontSize: 38,
-    fontWeight: "800",
+    fontSize: 42, // Increased font size for better visibility
+    fontWeight: "normal", // Caveat looks better with normal weight
     textAlign: "center",
-    fontFamily: Platform.OS === "ios" ? "Avenir-Black" : "sans-serif-medium",
-    letterSpacing: 0.8,
+    fontFamily: "Caveat-Bold", // Using the Bold variant for more impact
+    letterSpacing: 1.2, // Increased letter spacing
     textShadowColor: '#000',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 2,
+    textShadowOffset: { width: 1.5, height: 1.5 },
+    textShadowRadius: 3,
   },
   addButton: {
     position: "absolute",
