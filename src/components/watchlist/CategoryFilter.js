@@ -3,7 +3,7 @@ import { StyleSheet, View, TouchableOpacity, Text } from 'react-native';
 import { MEDIA_CATEGORIES } from '../../constants/categories';
 import { WatchlistContext } from '../../context/WatchlistContext';
 
-const CategoryFilter = () => {
+const CategoryFilter = ({ isWatchedScreen = false }) => {
   const { filterCategory, setFilterCategory } = useContext(WatchlistContext);
 
   return (

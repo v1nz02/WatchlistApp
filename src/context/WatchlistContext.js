@@ -75,6 +75,7 @@ export const WatchlistProvider = ({ children }) => {
       title,
       description: description || mediaData?.plot || "",
       category,
+      watched: false,
       createdAt: new Date().toISOString(),
       posterUrl: mediaData?.posterUrl,
       year: mediaData?.year,
@@ -203,15 +204,36 @@ export const WatchlistProvider = ({ children }) => {
     }
   };
 
-  const getFilteredWatchlist = () => {
+  // Filtriamo gli elementi in base allo stato watched
+  const getUnwatchedItems = () => {
+    return watchlist.filter(item => !item.watched);
+  };
+
+  const getWatchedItems = () => {
+    return watchlist.filter(item => item.watched);
+  };
+
+  // Filtriamo per categoria, considerando elementi visti/non visti
+  const getFilteredUnwatchedWatchlist = () => {
+    const unwatchedItems = getUnwatchedItems();
     return filterCategory
-      ? watchlist.filter((item) => item.category === filterCategory)
-      : watchlist;
+      ? unwatchedItems.filter((item) => item.category === filterCategory)
+      : unwatchedItems;
+  };
+
+  const getFilteredWatchedWatchlist = () => {
+    const watchedItems = getWatchedItems();
+    return filterCategory
+      ? watchedItems.filter((item) => item.category === filterCategory)
+      : watchedItems;
   };
 
   const value = {
     watchlist,
-    filteredWatchlist: getFilteredWatchlist(),
+    unwatchedWatchlist: getUnwatchedItems(),
+    watchedWatchlist: getWatchedItems(),
+    filteredWatchlist: getFilteredUnwatchedWatchlist(),
+    filteredWatchedWatchlist: getFilteredWatchedWatchlist(),
     filterCategory,
     filterAnimation,
     listTransitionAnim,
