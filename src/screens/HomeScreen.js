@@ -27,6 +27,27 @@ const HomeScreen = () => {
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
+  const [addBtnScale] = useState(new Animated.Value(1));
+  const [addBtnShadow, setAddBtnShadow] = useState(0.4);
+
+  const handleAddBtnPressIn = () => {
+    Animated.spring(addBtnScale, {
+      toValue: 1.15,
+      useNativeDriver: true,
+      friction: 4,
+    }).start();
+    setAddBtnShadow(0.7);
+  };
+
+  const handleAddBtnPressOut = () => {
+    Animated.spring(addBtnScale, {
+      toValue: 1,
+      useNativeDriver: true,
+      friction: 4,
+    }).start();
+    setAddBtnShadow(0.4);
+  };
+
   useEffect(() => {
     if (flatListRef.current) {
       flatListRef.current.scrollToOffset({ offset: 0, animated: true });
@@ -117,12 +138,21 @@ const HomeScreen = () => {
             />
           </Animated.View>
 
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => setModalVisible(true)}
-          >
-            <Ionicons name="add-circle" size={64} color="#E50914" />
-          </TouchableOpacity>
+          <Animated.View style={{
+            transform: [{ scale: addBtnScale }],
+            shadowOpacity: addBtnShadow,
+            ...styles.addButton,
+          }}>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPressIn={handleAddBtnPressIn}
+              onPressOut={handleAddBtnPressOut}
+              onPress={() => setModalVisible(true)}
+              style={{ borderRadius: 28 }}
+            >
+              <Ionicons name="add" size={36} color="#fff" style={{ backgroundColor: 'transparent' }} />
+            </TouchableOpacity>
+          </Animated.View>
 
           <AddItemModal 
             visible={modalVisible} 
@@ -195,10 +225,20 @@ const styles = StyleSheet.create({
   },
   addButton: {
     position: "absolute",
-    bottom: 15,
-    alignSelf: "flex-end",
-    paddingRight: 7,
-    elevation: 5,
+    bottom: 25,
+    right: 20,
+    backgroundColor: "#E50914",
+    borderRadius: 28,
+    padding: 8,
+    elevation: 8,
+    shadowColor: '#E50914',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+    borderWidth: 0,
+  },
+  addButtonAnimated: {
+    transform: [{ scale: 1 }],
   },
 });
 
