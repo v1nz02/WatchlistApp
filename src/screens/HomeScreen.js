@@ -1,4 +1,4 @@
-import React, { useRef, useState, useContext } from 'react';
+import React, { useRef, useState, useContext, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -26,6 +26,13 @@ const HomeScreen = () => {
   const [editItem, setEditItem] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (flatListRef.current) {
+      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+    }
+    scrollY.setValue(0); // Reset animazione scroll
+  }, [filteredWatchlist]);
 
   const openDetail = (item) => {
     setDetailItem(item);
@@ -122,6 +129,7 @@ const HomeScreen = () => {
             onClose={() => {
               setModalVisible(false);
               setEditItem(null);
+              
             }} 
             editItem={editItem}
           />

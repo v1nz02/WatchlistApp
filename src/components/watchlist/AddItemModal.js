@@ -27,12 +27,12 @@ const AddItemModal = ({ visible, onClose, editItem }) => {
       setTitle(editItem.title || '');
       setDescription(editItem.description || '');
       setSelectedCategory(editItem.category || MEDIA_CATEGORIES[0]);
-    } else {
+    } else if (visible) {
       setTitle('');
       setDescription('');
       setSelectedCategory(MEDIA_CATEGORIES[0]);
     }
-  }, [editItem]);
+  }, [editItem, visible]);
 
   React.useEffect(() => {
     if (visible) {
