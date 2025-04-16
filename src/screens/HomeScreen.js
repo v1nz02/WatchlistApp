@@ -48,13 +48,6 @@ const HomeScreen = () => {
     setAddBtnShadow(0.4);
   };
 
-  useEffect(() => {
-    if (flatListRef.current) {
-      flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-    }
-    scrollY.setValue(0); // Reset animazione scroll
-  }, [filteredWatchlist]);
-
   const openDetail = (item) => {
     setDetailItem(item);
     setDetailModalVisible(true);
