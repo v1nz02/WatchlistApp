@@ -166,6 +166,43 @@ export const WatchlistProvider = ({ children }) => {
     return updatedItem.id;
   };
 
+  const toggleWatched = (id) => {
+    const itemToUpdate = watchlist.find(item => item.id === id);
+    if (!itemToUpdate) return;
+    
+    // Toglia il valore watched
+    const updatedItem = {
+      ...itemToUpdate,
+      watched: !itemToUpdate.watched,
+      watchedAt: !itemToUpdate.watched ? new Date().toISOString() : null
+    };
+    
+    const newWatchlist = watchlist.map(item => 
+      item.id === id ? updatedItem : item
+    );
+    
+    setWatchlist(newWatchlist);
+    saveWatchlist(newWatchlist);
+    
+    // Aggiungiamo un effetto di animazione simile a removeItem ma più leggero
+    if (animatedValues[id]) {
+      Animated.sequence([
+        Animated.timing(animatedValues[id], {
+          toValue: 0.8,
+          duration: 200,
+          useNativeDriver: true,
+          easing: Easing.inOut(Easing.ease),
+        }),
+        Animated.spring(animatedValues[id], {
+          toValue: 1,
+          friction: 3,
+          tension: 40,
+          useNativeDriver: true,
+        })
+      ]).start();
+    }
+  };
+
   const getFilteredWatchlist = () => {
     return filterCategory
       ? watchlist.filter((item) => item.category === filterCategory)
@@ -183,6 +220,7 @@ export const WatchlistProvider = ({ children }) => {
     addItem,
     removeItem,
     updateItem,
+    toggleWatched,
     setFilterCategory,
   };
 

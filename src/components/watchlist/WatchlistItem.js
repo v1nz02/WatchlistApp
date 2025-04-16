@@ -1,11 +1,12 @@
-import React, { useContext } from 'react';
+import React, { useContext, useRef } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, Image, Animated } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { WatchlistContext } from '../../context/WatchlistContext';
 
 const WatchlistItem = ({ item, index, scrollY, onPress }) => {
-  const { animatedValues, removeItem } = useContext(WatchlistContext);
+  const { animatedValues, removeItem, toggleWatched } = useContext(WatchlistContext);
+  const swipeableRef = useRef(null);
 
   if (!animatedValues[item.id]) {
     animatedValues[item.id] = new Animated.Value(1);
@@ -84,6 +85,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
     shadowOpacity: shadowOpacity,
   };
 
+  // Renderizza l'azione di eliminazione a destra
   const renderRightActions = (progress, dragX) => {
     const translateX = dragX.interpolate({
       inputRange: [-100, 0],
@@ -112,12 +114,57 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
     );
   };
 
+  // Nuovo: renderizza l'azione "Visto" a sinistra
+  const renderLeftActions = (progress, dragX) => {
+    const translateX = dragX.interpolate({
+      inputRange: [0, 100],
+      outputRange: [-100, 0],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
+      inputRange: [0, 50, 100],
+      outputRange: [0, 0.5, 1],
+      extrapolate: 'clamp',
+    });
+
+    const color = item.watched ? '#E50914' : '#4CAF50';
+    const iconName = item.watched ? 'remove-done' : 'done';
+    const text = item.watched ? 'Non visto' : 'Visto';
+
+    return (
+      <View style={styles.watchedContainer}>
+        <Animated.View 
+          style={[
+            styles.watchedButton,
+            { transform: [{ translateX }], opacity }
+          ]}
+        >
+          <MaterialIcons name={iconName} size={28} color={color} />
+          <Text style={[styles.watchedText, { color }]}>{text}</Text>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const handleToggleWatched = (id) => {
+    toggleWatched(id);
+    // Chiudi lo swipeable dopo l'azione
+    if (swipeableRef.current) {
+      swipeableRef.current.close();
+    }
+  };
+
   return (
     <Animated.View style={[styles.itemWrapper, animatedStyle]}>
       <Swipeable
+        ref={swipeableRef}
         renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
+        renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX)}
         onSwipeableRightOpen={() => removeItem(item.id)}
+        onSwipeableLeftOpen={() => handleToggleWatched(item.id)}
         rightThreshold={90}
+        leftThreshold={90}
         containerStyle={styles.swipeableContainer}
         useNativeAnimations={true}
       >
@@ -127,12 +174,22 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
               <View style={styles.titleContainer}>
                 <Text style={styles.title}>{item.title}</Text>
                 {item.year && <Text style={styles.year}>({item.year})</Text>}
+                
+                {/* Indicatore di stato "Visto" */}
+                {item.watched && (
+                  <View style={styles.watchedIndicator}>
+                    <MaterialIcons name="done" size={16} color="#4CAF50" />
+                  </View>
+                )}
               </View>
               <View style={styles.contentRow}>
                 {item.posterUrl && (
                   <Image
                     source={{ uri: item.posterUrl }}
-                    style={styles.poster}
+                    style={[
+                      styles.poster,
+                      item.watched && styles.posterWatched
+                    ]}
                     resizeMode="cover"
                   />
                 )}
@@ -224,6 +281,11 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 8,
   },
+  posterWatched: {
+    opacity: 0.7,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
   itemTextContent: {
     flex: 1,
     minWidth: 0,
@@ -295,6 +357,35 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  // Nuovi stili per la funzionalità "Visto"
+  watchedContainer: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    backgroundColor: 'transparent',
+  },
+  watchedButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 20,
+  },
+  watchedText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  watchedIndicator: {
+    marginLeft: 8,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderRadius: 10,
+    padding: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
