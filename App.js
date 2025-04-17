@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { WatchlistProvider } from "./src/context/WatchlistContext";
 import HomeScreen from "./src/screens/HomeScreen";
-import WatchedScreen from "./src/screens/WatchedScreen";
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { View, Text, StatusBar } from 'react-native';
@@ -86,14 +85,6 @@ export default function App() {
               component={HomeScreen}
               options={{
                 animationEnabled: true
-              }}
-            />
-            <Stack.Screen 
-              name="Watched" 
-              component={WatchedScreen}
-              options={{
-                animationEnabled: true,
-                contentStyle: { backgroundColor: '#121212' }
               }}
             />
           </Stack.Navigator>

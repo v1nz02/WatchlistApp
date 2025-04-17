@@ -20,11 +20,12 @@ import { useFocusEffect } from '@react-navigation/native';
 const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
 
 const HomeScreen = ({ navigation }) => {
-  const { filteredWatchlist, filterAnimation, listTransitionAnim, flatListRef } = useContext(WatchlistContext);
+  const { filteredWatchlist, filteredWatchedWatchlist, filterAnimation, listTransitionAnim, flatListRef } = useContext(WatchlistContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
   const [editItem, setEditItem] = useState(null);
+  const [showWatched, setShowWatched] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
@@ -94,6 +95,34 @@ const HomeScreen = ({ navigation }) => {
     });
   };
 
+  const toggleWatchedView = () => {
+    // Animate the transition
+    Animated.sequence([
+      // Scale down slightly
+      Animated.timing(fadeAnim, {
+        toValue: 0.9,
+        duration: 200,
+        useNativeDriver: true
+      }),
+      // Scale back up
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 200,
+        useNativeDriver: true
+      })
+    ]).start();
+
+    // Toggle the state
+    setShowWatched(!showWatched);
+    
+    // Reset scroll position
+    if (flatListRef.current) {
+      setTimeout(() => {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }, 100);
+    }
+  };
+
   return (
     <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
       <SafeAreaView style={styles.safeArea}>
@@ -103,20 +132,28 @@ const HomeScreen = ({ navigation }) => {
             <View style={styles.headerContainer}>
               <TouchableOpacity 
                 style={styles.watchedButton} 
-                onPress={goToWatchedScreen}
+                onPress={toggleWatchedView}
               >
-                <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
+                {showWatched ? (
+                  <Ionicons name="play-circle-outline" size={28} color="#E50914" />
+                ) : (
+                  <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
+                )}
               </TouchableOpacity>
               <View style={styles.logoContainer}>
                 <View style={styles.logoIconWrapper}>
-                  <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
+                  {showWatched ? (
+                    <Ionicons name="checkmark-circle" size={34} color="#E50914" style={styles.logoIcon} />
+                  ) : (
+                    <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
+                  )}
                 </View>
-                <Text style={styles.header}>zWatch</Text>
+                <Text style={styles.header}>{showWatched ? "Visti" : "zWatch"}</Text>
               </View>
               <View style={styles.headerRightSpace} />
             </View>
 
-            <CategoryFilter />
+            <CategoryFilter isWatchedScreen={showWatched} />
             
             <Animated.View 
               style={{ 
@@ -131,7 +168,7 @@ const HomeScreen = ({ navigation }) => {
             >
               <AnimatedFlatList
                 ref={flatListRef}
-                data={filteredWatchlist}
+                data={showWatched ? filteredWatchedWatchlist : filteredWatchlist}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item, index }) => (
                   <WatchlistItem 
@@ -139,6 +176,7 @@ const HomeScreen = ({ navigation }) => {
                     index={index} 
                     scrollY={scrollY}
                     onPress={openDetail}
+                    isWatched={showWatched}
                   />
                 )}
                 showsVerticalScrollIndicator={false}
@@ -169,7 +207,9 @@ const HomeScreen = ({ navigation }) => {
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
                     <Ionicons name="videocam-outline" size={64} color="#444" />
-                    <Text style={styles.emptyText}>La tua watchlist è vuota</Text>
+                    <Text style={styles.emptyText}>
+                      {showWatched ? "Nessun elemento visto" : "La tua watchlist è vuota"}
+                    </Text>
                   </View>
                 }
               />
