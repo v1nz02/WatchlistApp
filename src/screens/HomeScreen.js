@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   StatusBar,
   SafeAreaView,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -18,6 +19,7 @@ import DetailModal from '../components/watchlist/DetailModal';
 import { useFocusEffect } from '@react-navigation/native';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
+const windowWidth = Dimensions.get('window').width;
 
 const HomeScreen = ({ navigation }) => {
   const { filteredWatchlist, filteredWatchedWatchlist, filterAnimation, listTransitionAnim, flatListRef } = useContext(WatchlistContext);
@@ -30,8 +32,17 @@ const HomeScreen = ({ navigation }) => {
   const scrollY = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
+  // Animazioni per il toggle tra elementi visti e non visti
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const watchedListPosition = useRef(new Animated.Value(windowWidth)).current;
+  const unwatchedListPosition = useRef(new Animated.Value(0)).current;
+
   const [addBtnScale] = useState(new Animated.Value(1));
   const [addBtnShadow, setAddBtnShadow] = useState(0.4);
+
+  // Titoli per le due viste che verranno animati
+  const watchTitle = "zWatch";
+  const watchedTitle = "Visti";
 
   // Handle screen focus and animation
   useFocusEffect(
@@ -96,31 +107,49 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const toggleWatchedView = () => {
-    // Animate the transition
-    Animated.sequence([
-      // Scale down slightly
-      Animated.timing(fadeAnim, {
-        toValue: 0.9,
-        duration: 200,
-        useNativeDriver: true
-      }),
-      // Scale back up
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true
-      })
-    ]).start();
-
-    // Toggle the state
-    setShowWatched(!showWatched);
+    // Per evitare doppi click durante l'animazione
+    if (slideAnim._value !== 0 && slideAnim._value !== 1) return;
     
-    // Reset scroll position
-    if (flatListRef.current) {
-      setTimeout(() => {
-        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
-      }, 100);
-    }
+    const toValue = showWatched ? 0 : 1;
+    
+    // Animate slide transition
+    Animated.parallel([
+      // Slide animation for overall state
+      Animated.timing(slideAnim, {
+        toValue: toValue,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      
+      // Slide out current list
+      Animated.timing(showWatched ? watchedListPosition : unwatchedListPosition, {
+        toValue: showWatched ? windowWidth : -windowWidth,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+      
+      // Slide in new list
+      Animated.timing(showWatched ? unwatchedListPosition : watchedListPosition, {
+        toValue: 0,
+        duration: 350,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      // After animation completes, update state and reset positions
+      setShowWatched(!showWatched);
+      if (showWatched) {
+        watchedListPosition.setValue(windowWidth);
+      } else {
+        unwatchedListPosition.setValue(-windowWidth);
+      }
+      
+      // Reset scroll position
+      if (flatListRef.current) {
+        setTimeout(() => {
+          flatListRef.current.scrollToOffset({ offset: 0, animated: false });
+        }, 50);
+      }
+    });
   };
 
   return (
@@ -134,86 +163,240 @@ const HomeScreen = ({ navigation }) => {
                 style={styles.watchedButton} 
                 onPress={toggleWatchedView}
               >
-                {showWatched ? (
-                  <Ionicons name="play-circle-outline" size={28} color="#E50914" />
-                ) : (
+                <Animated.View style={{
+                  opacity: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [1, 0]
+                  })
+                }}>
                   <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
-                )}
+                </Animated.View>
+                <Animated.View style={{
+                  position: 'absolute',
+                  opacity: slideAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0, 1]
+                  })
+                }}>
+                  <Ionicons name="play-circle-outline" size={28} color="#E50914" />
+                </Animated.View>
               </TouchableOpacity>
               <View style={styles.logoContainer}>
                 <View style={styles.logoIconWrapper}>
-                  {showWatched ? (
-                    <Ionicons name="checkmark-circle" size={34} color="#E50914" style={styles.logoIcon} />
-                  ) : (
+                  <Animated.View style={{
+                    opacity: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0]
+                    }),
+                    transform: [{
+                      rotateY: slideAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: ["0deg", "90deg", "180deg"]
+                      })
+                    }]
+                  }}>
                     <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
-                  )}
+                  </Animated.View>
+                  <Animated.View style={{
+                    position: 'absolute',
+                    opacity: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1]
+                    }),
+                    transform: [{
+                      rotateY: slideAnim.interpolate({
+                        inputRange: [0, 0.5, 1],
+                        outputRange: ["180deg", "270deg", "360deg"]
+                      })
+                    }]
+                  }}>
+                    <Ionicons name="checkmark-circle" size={34} color="#E50914" style={styles.logoIcon} />
+                  </Animated.View>
                 </View>
-                <Text style={styles.header}>{showWatched ? "Visti" : "zWatch"}</Text>
+                
+                <View style={{ position: 'relative', width: 150, height: 50, justifyContent: 'center', alignItems: 'center' }}>
+                  {/* Titolo "zWatch" che sfuma e scorre verso il basso */}
+                  <Animated.Text style={[
+                    styles.header,
+                    {
+                      position: 'absolute',
+                      opacity: slideAnim.interpolate({
+                        inputRange: [0, 0.3, 0.5],
+                        outputRange: [1, 0, 0]
+                      }),
+                      transform: [{
+                        translateY: slideAnim.interpolate({
+                          inputRange: [0, 0.5],
+                          outputRange: [0, 20]
+                        })
+                      }]
+                    }
+                  ]}>
+                    {watchTitle}
+                  </Animated.Text>
+                  
+                  {/* Titolo "Visti" che appare dal basso */}
+                  <Animated.Text style={[
+                    styles.header,
+                    {
+                      position: 'absolute',
+                      opacity: slideAnim.interpolate({
+                        inputRange: [0.5, 0.7, 1],
+                        outputRange: [0, 0, 1]
+                      }),
+                      transform: [{
+                        translateY: slideAnim.interpolate({
+                          inputRange: [0.5, 1],
+                          outputRange: [-20, 0]
+                        })
+                      }]
+                    }
+                  ]}>
+                    {watchedTitle}
+                  </Animated.Text>
+                </View>
               </View>
               <View style={styles.headerRightSpace} />
             </View>
 
             <CategoryFilter isWatchedScreen={showWatched} />
             
-            <Animated.View 
-              style={{ 
-                transform: [
-                  { scale: filterAnimation },
-                  { scale: listTransitionAnim }
-                ], 
-                opacity: listTransitionAnim,
-                flex: 1 
-              }}  
-              pointerEvents="box-none"
-            >
-              <AnimatedFlatList
-                ref={flatListRef}
-                data={showWatched ? filteredWatchedWatchlist : filteredWatchlist}
-                keyExtractor={(item) => item.id}
-                renderItem={({ item, index }) => (
-                  <WatchlistItem 
-                    item={item} 
-                    index={index} 
-                    scrollY={scrollY}
-                    onPress={openDetail}
-                    isWatched={showWatched}
-                  />
-                )}
-                showsVerticalScrollIndicator={false}
-                onScroll={Animated.event(
-                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                  { useNativeDriver: true }
-                )}
-                scrollEventThrottle={4}
-                contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-                decelerationRate="normal"
-                snapToAlignment="start"
-                initialNumToRender={5}
-                maxToRenderPerBatch={10}
-                windowSize={11}
-                layoutAnimation={{
-                  duration: 300,
-                  create: {
-                    type: 'spring',
-                    property: 'opacity',
-                    springDamping: 0.7,
-                  },
-                  delete: {
-                    type: 'spring',
-                    property: 'opacity',
-                    springDamping: 0.7,
-                  },
+            <View style={{ flex: 1, overflow: 'hidden' }}>
+              <Animated.View 
+                style={{ 
+                  ...StyleSheet.absoluteFillObject,
+                  transform: [
+                    { translateX: unwatchedListPosition }
+                  ]
                 }}
-                ListEmptyComponent={
-                  <View style={styles.emptyContainer}>
-                    <Ionicons name="videocam-outline" size={64} color="#444" />
-                    <Text style={styles.emptyText}>
-                      {showWatched ? "Nessun elemento visto" : "La tua watchlist è vuota"}
-                    </Text>
-                  </View>
-                }
-              />
-            </Animated.View>
+                pointerEvents={showWatched ? "none" : "auto"}
+              >
+                <Animated.View 
+                  style={{ 
+                    transform: [
+                      { scale: filterAnimation },
+                      { scale: listTransitionAnim }
+                    ], 
+                    opacity: listTransitionAnim,
+                    flex: 1 
+                  }}  
+                  pointerEvents="box-none"
+                >
+                  <AnimatedFlatList
+                    ref={flatListRef}
+                    data={filteredWatchlist}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) => (
+                      <WatchlistItem 
+                        item={item} 
+                        index={index} 
+                        scrollY={scrollY}
+                        onPress={openDetail}
+                        isWatched={false}
+                      />
+                    )}
+                    showsVerticalScrollIndicator={false}
+                    onScroll={Animated.event(
+                      [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                      { useNativeDriver: true }
+                    )}
+                    scrollEventThrottle={4}
+                    contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+                    decelerationRate="normal"
+                    snapToAlignment="start"
+                    initialNumToRender={5}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    layoutAnimation={{
+                      duration: 300,
+                      create: {
+                        type: 'spring',
+                        property: 'opacity',
+                        springDamping: 0.7,
+                      },
+                      delete: {
+                        type: 'spring',
+                        property: 'opacity',
+                        springDamping: 0.7,
+                      },
+                    }}
+                    ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                        <Ionicons name="videocam-outline" size={64} color="#444" />
+                        <Text style={styles.emptyText}>
+                          La tua watchlist è vuota
+                        </Text>
+                      </View>
+                    }
+                  />
+                </Animated.View>
+              </Animated.View>
+
+              <Animated.View 
+                style={{ 
+                  ...StyleSheet.absoluteFillObject,
+                  transform: [
+                    { translateX: watchedListPosition }
+                  ]
+                }}
+                pointerEvents={showWatched ? "auto" : "none"}
+              >
+                <Animated.View 
+                  style={{ 
+                    transform: [
+                      { scale: filterAnimation },
+                      { scale: listTransitionAnim }
+                    ], 
+                    opacity: listTransitionAnim,
+                    flex: 1 
+                  }}  
+                  pointerEvents="box-none"
+                >
+                  <AnimatedFlatList
+                    data={filteredWatchedWatchlist}
+                    keyExtractor={(item) => item.id}
+                    renderItem={({ item, index }) => (
+                      <WatchlistItem 
+                        item={item} 
+                        index={index} 
+                        scrollY={new Animated.Value(0)}
+                        onPress={openDetail}
+                        isWatched={true}
+                      />
+                    )}
+                    showsVerticalScrollIndicator={false}
+                    scrollEventThrottle={4}
+                    contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+                    decelerationRate="normal"
+                    snapToAlignment="start"
+                    initialNumToRender={5}
+                    maxToRenderPerBatch={10}
+                    windowSize={11}
+                    layoutAnimation={{
+                      duration: 300,
+                      create: {
+                        type: 'spring',
+                        property: 'opacity',
+                        springDamping: 0.7,
+                      },
+                      delete: {
+                        type: 'spring',
+                        property: 'opacity',
+                        springDamping: 0.7,
+                      },
+                    }}
+                    ListEmptyComponent={
+                      <View style={styles.emptyContainer}>
+                        <Ionicons name="videocam-outline" size={64} color="#444" />
+                        <Text style={styles.emptyText}>
+                          Nessun elemento visto
+                        </Text>
+                      </View>
+                    }
+                  />
+                </Animated.View>
+              </Animated.View>
+            </View>
 
             <Animated.View style={{
               transform: [{ scale: addBtnScale }],
