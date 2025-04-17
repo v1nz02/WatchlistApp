@@ -15,6 +15,7 @@ import CategoryFilter from '../components/watchlist/CategoryFilter';
 import WatchlistItem from '../components/watchlist/WatchlistItem';
 import AddItemModal from '../components/watchlist/AddItemModal';
 import DetailModal from '../components/watchlist/DetailModal';
+import { useFocusEffect } from '@react-navigation/native';
 
 const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
 
@@ -26,9 +27,27 @@ const HomeScreen = ({ navigation }) => {
   const [editItem, setEditItem] = useState(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
 
   const [addBtnScale] = useState(new Animated.Value(1));
   const [addBtnShadow, setAddBtnShadow] = useState(0.4);
+
+  // Handle screen focus and animation
+  useFocusEffect(
+    React.useCallback(() => {
+      // When the screen comes into focus, fade it in
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
+      return () => {
+        // When losing focus, prepare for the next return
+        fadeAnim.setValue(0.96);
+      };
+    }, [])
+  );
 
   const handleAddBtnPressIn = () => {
     Animated.spring(addBtnScale, {
@@ -65,124 +84,133 @@ const HomeScreen = ({ navigation }) => {
   };
 
   const goToWatchedScreen = () => {
-    navigation.navigate('Watched');
+    // Fade out before navigation
+    Animated.timing(fadeAnim, {
+      toValue: 0.9,
+      duration: 200,
+      useNativeDriver: true
+    }).start(() => {
+      navigation.navigate('Watched');
+    });
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="light-content" backgroundColor="#121212" />
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <View style={styles.container}>
-          <View style={styles.headerContainer}>
-            <TouchableOpacity 
-              style={styles.watchedButton} 
-              onPress={goToWatchedScreen}
-            >
-              <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
-            </TouchableOpacity>
-            <View style={styles.logoContainer}>
-              <View style={styles.logoIconWrapper}>
-                <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
-              </View>
-              <Text style={styles.header}>zWatch</Text>
-            </View>
-            <View style={styles.headerRightSpace} />
-          </View>
-
-          <CategoryFilter />
-          
-          <Animated.View 
-            style={{ 
-              transform: [
-                { scale: filterAnimation },
-                { scale: listTransitionAnim }
-              ], 
-              opacity: listTransitionAnim,
-              flex: 1 
-            }}  
-            pointerEvents="box-none"
-          >
-            <AnimatedFlatList
-              ref={flatListRef}
-              data={filteredWatchlist}
-              keyExtractor={(item) => item.id}
-              renderItem={({ item, index }) => (
-                <WatchlistItem 
-                  item={item} 
-                  index={index} 
-                  scrollY={scrollY}
-                  onPress={openDetail}
-                />
-              )}
-              showsVerticalScrollIndicator={false}
-              onScroll={Animated.event(
-                [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-                { useNativeDriver: true }
-              )}
-              scrollEventThrottle={4}
-              contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-              decelerationRate="normal"
-              snapToAlignment="start"
-              initialNumToRender={5}
-              maxToRenderPerBatch={10}
-              windowSize={11}
-              layoutAnimation={{
-                duration: 300,
-                create: {
-                  type: 'spring',
-                  property: 'opacity',
-                  springDamping: 0.7,
-                },
-                delete: {
-                  type: 'spring',
-                  property: 'opacity',
-                  springDamping: 0.7,
-                },
-              }}
-              ListEmptyComponent={
-                <View style={styles.emptyContainer}>
-                  <Ionicons name="videocam-outline" size={64} color="#444" />
-                  <Text style={styles.emptyText}>La tua watchlist è vuota</Text>
+    <Animated.View style={{ flex: 1, opacity: fadeAnim }}>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="light-content" backgroundColor="#121212" />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <View style={styles.container}>
+            <View style={styles.headerContainer}>
+              <TouchableOpacity 
+                style={styles.watchedButton} 
+                onPress={goToWatchedScreen}
+              >
+                <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
+              </TouchableOpacity>
+              <View style={styles.logoContainer}>
+                <View style={styles.logoIconWrapper}>
+                  <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
                 </View>
-              }
-            />
-          </Animated.View>
+                <Text style={styles.header}>zWatch</Text>
+              </View>
+              <View style={styles.headerRightSpace} />
+            </View>
 
-          <Animated.View style={{
-            transform: [{ scale: addBtnScale }],
-            shadowOpacity: addBtnShadow,
-            ...styles.addButton,
-          }}>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPressIn={handleAddBtnPressIn}
-              onPressOut={handleAddBtnPressOut}
-              onPress={() => setModalVisible(true)}
-              style={{ borderRadius: 28 }}
+            <CategoryFilter />
+            
+            <Animated.View 
+              style={{ 
+                transform: [
+                  { scale: filterAnimation },
+                  { scale: listTransitionAnim }
+                ], 
+                opacity: listTransitionAnim,
+                flex: 1 
+              }}  
+              pointerEvents="box-none"
             >
-              <Ionicons name="add" size={36} color="#fff" style={{ backgroundColor: 'transparent' }} />
-            </TouchableOpacity>
-          </Animated.View>
+              <AnimatedFlatList
+                ref={flatListRef}
+                data={filteredWatchlist}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item, index }) => (
+                  <WatchlistItem 
+                    item={item} 
+                    index={index} 
+                    scrollY={scrollY}
+                    onPress={openDetail}
+                  />
+                )}
+                showsVerticalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+                  { useNativeDriver: true }
+                )}
+                scrollEventThrottle={4}
+                contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+                decelerationRate="normal"
+                snapToAlignment="start"
+                initialNumToRender={5}
+                maxToRenderPerBatch={10}
+                windowSize={11}
+                layoutAnimation={{
+                  duration: 300,
+                  create: {
+                    type: 'spring',
+                    property: 'opacity',
+                    springDamping: 0.7,
+                  },
+                  delete: {
+                    type: 'spring',
+                    property: 'opacity',
+                    springDamping: 0.7,
+                  },
+                }}
+                ListEmptyComponent={
+                  <View style={styles.emptyContainer}>
+                    <Ionicons name="videocam-outline" size={64} color="#444" />
+                    <Text style={styles.emptyText}>La tua watchlist è vuota</Text>
+                  </View>
+                }
+              />
+            </Animated.View>
 
-          <AddItemModal 
-            visible={modalVisible} 
-            onClose={() => {
-              setModalVisible(false);
-              setEditItem(null);
-              
-            }} 
-            editItem={editItem}
-          />
+            <Animated.View style={{
+              transform: [{ scale: addBtnScale }],
+              shadowOpacity: addBtnShadow,
+              ...styles.addButton,
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPressIn={handleAddBtnPressIn}
+                onPressOut={handleAddBtnPressOut}
+                onPress={() => setModalVisible(true)}
+                style={{ borderRadius: 28 }}
+              >
+                <Ionicons name="add" size={36} color="#fff" style={{ backgroundColor: 'transparent' }} />
+              </TouchableOpacity>
+            </Animated.View>
 
-          <DetailModal 
-            item={detailItem}
-            visible={detailModalVisible}
-            onClose={closeDetail}
-            onEdit={handleEdit}
-          />
-        </View>
-      </GestureHandlerRootView>
-    </SafeAreaView>
+            <AddItemModal 
+              visible={modalVisible} 
+              onClose={() => {
+                setModalVisible(false);
+                setEditItem(null);
+                
+              }} 
+              editItem={editItem}
+            />
+
+            <DetailModal 
+              item={detailItem}
+              visible={detailModalVisible}
+              onClose={closeDetail}
+              onEdit={handleEdit}
+            />
+          </View>
+        </GestureHandlerRootView>
+      </SafeAreaView>
+    </Animated.View>
   );
 };
 

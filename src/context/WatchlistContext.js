@@ -12,6 +12,12 @@ export const WatchlistProvider = ({ children }) => {
   const filterAnimation = useRef(new Animated.Value(1)).current;
   const listTransitionAnim = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef(null);
+  const watchedFlatListRef = useRef(null);
+
+  // Funzione per impostare il riferimento alla FlatList della schermata Watched
+  const setWatchedFlatListRef = (ref) => {
+    watchedFlatListRef.current = ref;
+  };
 
   useEffect(() => {
     loadWatchlistData();
@@ -51,6 +57,19 @@ export const WatchlistProvider = ({ children }) => {
         useNativeDriver: true,
       }),
     ]).start();
+    
+    // Scroll to top when filter changes for both flatLists
+    setTimeout(() => {
+      // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
+      if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      
+      // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
+      if (watchedFlatListRef.current && typeof watchedFlatListRef.current.scrollToOffset === 'function') {
+        watchedFlatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+    }, 100);
   }, [filterCategory]);
 
   const loadWatchlistData = async () => {
@@ -239,11 +258,13 @@ export const WatchlistProvider = ({ children }) => {
     listTransitionAnim,
     animatedValues,
     flatListRef,
+    watchedFlatListRef,
     addItem,
     removeItem,
     updateItem,
     toggleWatched,
     setFilterCategory,
+    setWatchedFlatListRef,
   };
 
   return (

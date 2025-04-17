@@ -71,17 +71,28 @@ export default function App() {
             initialRouteName="Home"
             screenOptions={{
               headerShown: false,
-              animation: 'slide_from_right',
+              animation: 'fade',
               contentStyle: { backgroundColor: '#121212' },
               gestureEnabled: true,
-              animationDuration: 300
+              gestureDirection: 'horizontal',
+              animationDuration: 200,
+              // Prevent flashing during transitions
+              presentation: 'card',
+              detachPreviousScreen: false
             }}
           >
-            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen 
+              name="Home" 
+              component={HomeScreen}
+              options={{
+                animationEnabled: true
+              }}
+            />
             <Stack.Screen 
               name="Watched" 
               component={WatchedScreen}
               options={{
+                animationEnabled: true,
                 contentStyle: { backgroundColor: '#121212' }
               }}
             />
