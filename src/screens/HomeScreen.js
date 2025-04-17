@@ -163,23 +163,34 @@ const HomeScreen = ({ navigation }) => {
                 style={styles.watchedButton} 
                 onPress={toggleWatchedView}
               >
-                <Animated.View style={{
-                  opacity: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 0]
-                  })
-                }}>
-                  <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
-                </Animated.View>
-                <Animated.View style={{
-                  position: 'absolute',
-                  opacity: slideAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [0, 1]
-                  })
-                }}>
-                  <Ionicons name="play-circle-outline" size={28} color="#E50914" />
-                </Animated.View>
+                <View style={styles.iconContainer}>
+                  <Animated.View style={{
+                    position: 'absolute',
+                    width: 28,
+                    height: 28,
+                    opacity: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [1, 0]
+                    }),
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
+                  </Animated.View>
+                  <Animated.View style={{
+                    position: 'absolute',
+                    width: 28,
+                    height: 28,
+                    opacity: slideAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0, 1]
+                    }),
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <Ionicons name="play-circle-outline" size={28} color="#E50914" />
+                  </Animated.View>
+                </View>
               </TouchableOpacity>
               <View style={styles.logoContainer}>
                 <View style={styles.logoIconWrapper}>
@@ -197,29 +208,17 @@ const HomeScreen = ({ navigation }) => {
                   }}>
                     <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
                   </Animated.View>
-                  <Animated.View style={{
-                    position: 'absolute',
-                    opacity: slideAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [0, 1]
-                    }),
-                    transform: [{
-                      rotateY: slideAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: ["180deg", "270deg", "360deg"]
-                      })
-                    }]
-                  }}>
-                    <Ionicons name="checkmark-circle" size={34} color="#E50914" style={styles.logoIcon} />
-                  </Animated.View>
+                  
                 </View>
                 
-                <View style={{ position: 'relative', width: 150, height: 50, justifyContent: 'center', alignItems: 'center' }}>
+                <View style={{ position: 'relative', width: 150, height: 50, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginLeft: -10 }}>
                   {/* Titolo "zWatch" che sfuma e scorre verso il basso */}
                   <Animated.Text style={[
                     styles.header,
                     {
                       position: 'absolute',
+                      width: '100%',
+                      textAlign: 'center',
                       opacity: slideAnim.interpolate({
                         inputRange: [0, 0.3, 0.5],
                         outputRange: [1, 0, 0]
@@ -240,6 +239,9 @@ const HomeScreen = ({ navigation }) => {
                     styles.header,
                     {
                       position: 'absolute',
+                      width: '100%',
+                      textAlign: 'left',
+                      paddingLeft: 18,
                       opacity: slideAnim.interpolate({
                         inputRange: [0.5, 0.7, 1],
                         outputRange: [0, 0, 1]
@@ -458,6 +460,15 @@ const styles = StyleSheet.create({
   watchedButton: {
     padding: 8,
     width: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  iconContainer: {
+    width: 28,
+    height: 28,
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   headerRightSpace: {
     width: 44,

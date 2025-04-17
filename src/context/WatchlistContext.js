@@ -204,15 +204,23 @@ export const WatchlistProvider = ({ children }) => {
     setWatchlist(newWatchlist);
     saveWatchlist(newWatchlist);
     
-    // Aggiungiamo un effetto di animazione simile a removeItem ma più leggero
+    // Reset completo dell'animazione per garantire che la scala torni a 1
     if (animatedValues[id]) {
+      // Prima resettiamo il valore a 1 immediatamente se era meno di 1
+      if (animatedValues[id]._value < 1) {
+        animatedValues[id].setValue(1);
+      }
+      
+      // Poi applichiamo un'animazione che evidenzi il cambio di stato
       Animated.sequence([
+        // Scala leggermente verso il basso
         Animated.timing(animatedValues[id], {
-          toValue: 0.8,
-          duration: 200,
+          toValue: 0.9,
+          duration: 150,
           useNativeDriver: true,
-          easing: Easing.inOut(Easing.ease),
+          easing: Easing.out(Easing.ease),
         }),
+        // Ritorna a scala 1 con un leggero effetto elastico
         Animated.spring(animatedValues[id], {
           toValue: 1,
           friction: 3,
