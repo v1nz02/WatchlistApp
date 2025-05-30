@@ -9,7 +9,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
   const { animatedValues, removeItem, toggleWatched } = useContext(WatchlistContext);
   const swipeableRef = useRef(null);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [tempRating, setTempRating] = useState(0);
+  const [tempRating, setTempRating] = useState(item.userRating || 0);
 
   if (!animatedValues[item.id]) {
     animatedValues[item.id] = new Animated.Value(1);
@@ -219,16 +219,35 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
                   )}
                   <View style={styles.itemTextContent}>
                     <View style={styles.itemTopRow}>
-                      {item.userRating && (
+                      {item.userRating ? (
                         <View style={styles.ratingContainer}>
-                          <MaterialIcons name="star" size={16} color="#FFD700" />
-                          <Text style={styles.rating}>{item.userRating}/10</Text>
+                          <StarRating
+                            rating={item.userRating}
+                            size={20}
+                            isUserRating={true}
+                            readOnly={true}
+                            compact={true}
+                          />
+                          <Text style={[styles.rating, { color: '#FFA500', fontSize: 16, fontWeight: 'bold' }]}>{item.userRating}/10</Text>
                         </View>
-                      )}
-                      {item.rating && !item.userRating && (
+                      ) : item.rating ? (
                         <View style={styles.ratingContainer}>
-                          <MaterialIcons name="star" size={16} color="#FFD700" />
+                          <StarRating
+                            rating={item.rating}
+                            size={16}
+                            readOnly={true}
+                            compact={true}
+                          />
                           <Text style={styles.rating}>{item.rating}</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.ratingContainer}>
+                          <StarRating
+                            rating={0}
+                            size={16}
+                            readOnly={true}
+                            compact={true}
+                          />
                         </View>
                       )}
                       {item.totalSeasons && (
@@ -271,6 +290,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
                 rating={tempRating}
                 onRatingChange={setTempRating}
                 size={28}
+                isUserRating={true}
               />
             </View>
             <View style={styles.modalButtons}>
