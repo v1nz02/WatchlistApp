@@ -175,8 +175,8 @@ const HomeScreen = ({ navigation }) => {
                 <View style={styles.iconContainer}>
                   <Animated.View style={{
                     position: 'absolute',
-                    width: 28,
-                    height: 28,
+                    width: 40,
+                    height: 40,
                     opacity: slideAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [1, 0]
@@ -184,12 +184,12 @@ const HomeScreen = ({ navigation }) => {
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <Ionicons name="checkmark-circle-outline" size={28} color="#E50914" />
+                    <Ionicons name="checkmark-circle-outline" size={40} color="#E50914" />
                   </Animated.View>
                   <Animated.View style={{
                     position: 'absolute',
-                    width: 28,
-                    height: 28,
+                    width: 40,
+                    height: 40,
                     opacity: slideAnim.interpolate({
                       inputRange: [0, 1],
                       outputRange: [0, 1]
@@ -197,28 +197,12 @@ const HomeScreen = ({ navigation }) => {
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}>
-                    <Ionicons name="play-circle-outline" size={28} color="#E50914" />
+                    <Ionicons name="play-circle-outline" size={40} color="#E50914" />
                   </Animated.View>
                 </View>
               </TouchableOpacity>
+
               <View style={styles.logoContainer}>
-                <View style={styles.logoIconWrapper}>
-                  <Animated.View style={{
-                    opacity: slideAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 0]
-                    }),
-                    transform: [{
-                      rotateY: slideAnim.interpolate({
-                        inputRange: [0, 0.5, 1],
-                        outputRange: ["0deg", "90deg", "180deg"]
-                      })
-                    }]
-                  }}>
-                    <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
-                  </Animated.View>
-                </View>
-                
                 <View style={styles.titleContainer}>
                   {/* Titolo "zWatch" che sfuma e scorre verso il basso */}
                   <Animated.Text style={[
@@ -265,7 +249,7 @@ const HomeScreen = ({ navigation }) => {
                   </Animated.Text>
                 </View>
               </View>
-              <View style={styles.headerRightSpace} />
+
               <View style={styles.headerActions}>
                 <Animated.View style={{
                   transform: [{ scale: sortAnimation }]
@@ -487,13 +471,14 @@ const styles = StyleSheet.create({
   },
   watchedButton: {
     padding: 8,
-    width: 44,
+    width: 52,
+    height: 52,
     alignItems: 'center',
     justifyContent: 'center',
   },
   iconContainer: {
-    width: 28,
-    height: 28,
+    width: 40,
+    height: 40,
     position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
@@ -529,7 +514,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    marginLeft: -20,
+    marginLeft: -15,
   },
   header: {
     color: "#E50914",
