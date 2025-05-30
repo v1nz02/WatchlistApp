@@ -8,9 +8,11 @@ export const WatchlistContext = createContext();
 export const WatchlistProvider = ({ children }) => {
   const [watchlist, setWatchlist] = useState([]);
   const [filterCategory, setFilterCategory] = useState(null);
+  const [sortByRating, setSortByRating] = useState(false);
   const animatedValues = useRef({}).current;
   const filterAnimation = useRef(new Animated.Value(1)).current;
   const listTransitionAnim = useRef(new Animated.Value(1)).current;
+  const sortAnimation = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef(null);
   const watchedFlatListRef = useRef(null);
 
@@ -186,15 +188,16 @@ export const WatchlistProvider = ({ children }) => {
     return updatedItem.id;
   };
 
-  const toggleWatched = (id) => {
+  const toggleWatched = (id, rating = null) => {
     const itemToUpdate = watchlist.find(item => item.id === id);
     if (!itemToUpdate) return;
     
-    // Toglia il valore watched
+    // Toglia il valore watched e aggiunge il rating se fornito
     const updatedItem = {
       ...itemToUpdate,
       watched: !itemToUpdate.watched,
-      watchedAt: !itemToUpdate.watched ? new Date().toISOString() : null
+      watchedAt: !itemToUpdate.watched ? new Date().toISOString() : null,
+      userRating: !itemToUpdate.watched ? rating : null
     };
     
     const newWatchlist = watchlist.map(item => 
@@ -231,13 +234,26 @@ export const WatchlistProvider = ({ children }) => {
     }
   };
 
+  // Funzione per ordinare gli elementi per rating
+  const sortItemsByRating = (items) => {
+    if (!sortByRating) return items;
+    
+    return [...items].sort((a, b) => {
+      const ratingA = a.userRating || a.rating || 0;
+      const ratingB = b.userRating || b.rating || 0;
+      return ratingB - ratingA; // Ordine decrescente
+    });
+  };
+
   // Filtriamo gli elementi in base allo stato watched
   const getUnwatchedItems = () => {
-    return watchlist.filter(item => !item.watched);
+    const unwatchedItems = watchlist.filter(item => !item.watched);
+    return sortItemsByRating(unwatchedItems);
   };
 
   const getWatchedItems = () => {
-    return watchlist.filter(item => item.watched);
+    const watchedItems = watchlist.filter(item => item.watched);
+    return sortItemsByRating(watchedItems);
   };
 
   // Filtriamo per categoria, considerando elementi visti/non visti
@@ -255,6 +271,41 @@ export const WatchlistProvider = ({ children }) => {
       : watchedItems;
   };
 
+  const toggleSortByRating = () => {
+    // Anima la transizione
+    Animated.sequence([
+      // Scala leggermente verso il basso
+      Animated.timing(sortAnimation, {
+        toValue: 0.95,
+        duration: 150,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
+      }),
+      // Ritorna a scala 1 con un leggero effetto elastico
+      Animated.spring(sortAnimation, {
+        toValue: 1,
+        friction: 3,
+        tension: 40,
+        useNativeDriver: true,
+      })
+    ]).start();
+
+    setSortByRating(!sortByRating);
+
+    // Scroll to top when sorting changes for both flatLists
+    setTimeout(() => {
+      // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
+      if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+      
+      // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
+      if (watchedFlatListRef.current && typeof watchedFlatListRef.current.scrollToOffset === 'function') {
+        watchedFlatListRef.current.scrollToOffset({ offset: 0, animated: true });
+      }
+    }, 100);
+  };
+
   const value = {
     watchlist,
     unwatchedWatchlist: getUnwatchedItems(),
@@ -264,6 +315,7 @@ export const WatchlistProvider = ({ children }) => {
     filterCategory,
     filterAnimation,
     listTransitionAnim,
+    sortAnimation,
     animatedValues,
     flatListRef,
     watchedFlatListRef,
@@ -273,6 +325,8 @@ export const WatchlistProvider = ({ children }) => {
     toggleWatched,
     setFilterCategory,
     setWatchedFlatListRef,
+    sortByRating,
+    toggleSortByRating,
   };
 
   return (

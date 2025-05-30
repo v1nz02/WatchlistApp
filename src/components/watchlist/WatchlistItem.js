@@ -1,12 +1,15 @@
-import React, { useContext, useRef } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Animated } from 'react-native';
+import React, { useContext, useRef, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Modal } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { WatchlistContext } from '../../context/WatchlistContext';
+import StarRating from '../StarRating';
 
 const WatchlistItem = ({ item, index, scrollY, onPress }) => {
   const { animatedValues, removeItem, toggleWatched } = useContext(WatchlistContext);
   const swipeableRef = useRef(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [tempRating, setTempRating] = useState(0);
 
   if (!animatedValues[item.id]) {
     animatedValues[item.id] = new Animated.Value(1);
@@ -148,84 +151,146 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
   };
 
   const handleToggleWatched = (id) => {
-    toggleWatched(id);
-    // Chiudi lo swipeable dopo l'azione
+    if (!item.watched) {
+      setShowRatingModal(true);
+    } else {
+      toggleWatched(id);
+      if (swipeableRef.current) {
+        swipeableRef.current.close();
+      }
+    }
+  };
+
+  const handleRatingSubmit = () => {
+    toggleWatched(item.id, tempRating);
+    setShowRatingModal(false);
+    setTempRating(0);
+    if (swipeableRef.current) {
+      swipeableRef.current.close();
+    }
+  };
+
+  const handleRatingCancel = () => {
+    setShowRatingModal(false);
+    setTempRating(0);
     if (swipeableRef.current) {
       swipeableRef.current.close();
     }
   };
 
   return (
-    <Animated.View style={[styles.itemWrapper, animatedStyle]}>
-      <Swipeable
-        ref={swipeableRef}
-        renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
-        renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX)}
-        onSwipeableRightOpen={() => removeItem(item.id)}
-        onSwipeableLeftOpen={() => handleToggleWatched(item.id)}
-        rightThreshold={90}
-        leftThreshold={90}
-        containerStyle={styles.swipeableContainer}
-        useNativeAnimations={true}
-      >
-        <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(item)}>
-          <View style={styles.item}>
-            <View style={styles.itemContent}>
-              <View style={styles.titleContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                {item.year && <Text style={styles.year}>({item.year})</Text>}
-                
-                {/* Indicatore di stato "Visto" */}
-                {item.watched && (
-                  <View style={styles.watchedIndicator}>
-                    <MaterialIcons name="done" size={16} color="#4CAF50" />
-                  </View>
-                )}
-              </View>
-              <View style={styles.contentRow}>
-                {item.posterUrl && (
-                  <Image
-                    source={{ uri: item.posterUrl }}
-                    style={[
-                      styles.poster,
-                      item.watched && styles.posterWatched
-                    ]}
-                    resizeMode="cover"
-                  />
-                )}
-                <View style={styles.itemTextContent}>
-                  <View style={styles.itemTopRow}>
-                    {item.rating && (
-                      <View style={styles.ratingContainer}>
-                        <MaterialIcons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.rating}>{item.rating}</Text>
-                      </View>
-                    )}
-                    {item.totalSeasons && (
-                      <View style={styles.seasonsContainer}>
-                        <MaterialIcons name="tv" size={16} color="#aaa" />
-                        <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
-                      </View>
-                    )}
-                    <Text style={styles.itemCategory}>{item.category}</Text>
-                  </View>
-                  {item.genre && (
-                    <View style={styles.genreContainer}>
-                      <Text style={styles.genre}>{item.genre}</Text>
+    <>
+      <Animated.View style={[styles.itemWrapper, animatedStyle]}>
+        <Swipeable
+          ref={swipeableRef}
+          renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
+          renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX)}
+          onSwipeableRightOpen={() => removeItem(item.id)}
+          onSwipeableLeftOpen={() => handleToggleWatched(item.id)}
+          rightThreshold={90}
+          leftThreshold={90}
+          containerStyle={styles.swipeableContainer}
+          useNativeAnimations={true}
+        >
+          <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(item)}>
+            <View style={styles.item}>
+              <View style={styles.itemContent}>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  {item.year && <Text style={styles.year}>({item.year})</Text>}
+                  
+                  {/* Indicatore di stato "Visto" */}
+                  {item.watched && (
+                    <View style={styles.watchedIndicator}>
+                      <MaterialIcons name="done" size={16} color="#4CAF50" />
                     </View>
                   )}
-                  {item.description && (
-                    <Text style={styles.description} numberOfLines={3}>
-                      {item.description}
-                    </Text>
+                </View>
+                <View style={styles.contentRow}>
+                  {item.posterUrl && (
+                    <Image
+                      source={{ uri: item.posterUrl }}
+                      style={[
+                        styles.poster,
+                        item.watched && styles.posterWatched
+                      ]}
+                      resizeMode="cover"
+                    />
                   )}
+                  <View style={styles.itemTextContent}>
+                    <View style={styles.itemTopRow}>
+                      {item.userRating && (
+                        <View style={styles.ratingContainer}>
+                          <MaterialIcons name="star" size={16} color="#FFD700" />
+                          <Text style={styles.rating}>{item.userRating}/10</Text>
+                        </View>
+                      )}
+                      {item.rating && !item.userRating && (
+                        <View style={styles.ratingContainer}>
+                          <MaterialIcons name="star" size={16} color="#FFD700" />
+                          <Text style={styles.rating}>{item.rating}</Text>
+                        </View>
+                      )}
+                      {item.totalSeasons && (
+                        <View style={styles.seasonsContainer}>
+                          <MaterialIcons name="tv" size={16} color="#aaa" />
+                          <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
+                        </View>
+                      )}
+                      <Text style={styles.itemCategory}>{item.category}</Text>
+                    </View>
+                    {item.genre && (
+                      <View style={styles.genreContainer}>
+                        <Text style={styles.genre}>{item.genre}</Text>
+                      </View>
+                    )}
+                    {item.description && (
+                      <Text style={styles.description} numberOfLines={3}>
+                        {item.description}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
+          </TouchableOpacity>
+        </Swipeable>
+      </Animated.View>
+
+      <Modal
+        visible={showRatingModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleRatingCancel}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Valuta {item.title}</Text>
+            <View style={styles.starRatingContainer}>
+              <StarRating
+                rating={tempRating}
+                onRatingChange={setTempRating}
+                size={28}
+              />
+            </View>
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={handleRatingCancel}
+              >
+                <Text style={styles.buttonText}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={handleRatingSubmit}
+              >
+                <Text style={styles.buttonText}>Conferma</Text>
+              </TouchableOpacity>
+            </View>
           </View>
-        </TouchableOpacity>
-      </Swipeable>
-    </Animated.View>
+        </View>
+      </Modal>
+    </>
   );
 };
 
@@ -386,6 +451,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#1f1f1f',
+    borderRadius: 20,
+    padding: 20,
+    width: '90%',
+    maxWidth: 400,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  starRatingContainer: {
+    width: '100%',
+    paddingHorizontal: 10,
+    marginBottom: 10,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginTop: 20,
+    paddingHorizontal: 10,
+  },
+  modalButton: {
+    padding: 12,
+    borderRadius: 10,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#666',
+  },
+  submitButton: {
+    backgroundColor: '#4CAF50',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

@@ -22,7 +22,16 @@ const AnimatedFlatList = Animated.createAnimatedComponent(Animated.FlatList);
 const windowWidth = Dimensions.get('window').width;
 
 const HomeScreen = ({ navigation }) => {
-  const { filteredWatchlist, filteredWatchedWatchlist, filterAnimation, listTransitionAnim, flatListRef } = useContext(WatchlistContext);
+  const { 
+    filteredWatchlist, 
+    filteredWatchedWatchlist, 
+    filterAnimation, 
+    listTransitionAnim, 
+    sortAnimation,
+    flatListRef,
+    sortByRating,
+    toggleSortByRating 
+  } = useContext(WatchlistContext);
   const [modalVisible, setModalVisible] = useState(false);
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [detailItem, setDetailItem] = useState(null);
@@ -208,10 +217,9 @@ const HomeScreen = ({ navigation }) => {
                   }}>
                     <Ionicons name="play" size={40} color="#E50914" style={styles.logoIcon} />
                   </Animated.View>
-                  
                 </View>
                 
-                <View style={{ position: 'relative', width: 150, height: 50, justifyContent: 'center', alignItems: 'center', overflow: 'hidden', marginLeft: -10 }}>
+                <View style={styles.titleContainer}>
                   {/* Titolo "zWatch" che sfuma e scorre verso il basso */}
                   <Animated.Text style={[
                     styles.header,
@@ -240,8 +248,7 @@ const HomeScreen = ({ navigation }) => {
                     {
                       position: 'absolute',
                       width: '100%',
-                      textAlign: 'left',
-                      paddingLeft: 18,
+                      textAlign: 'center',
                       opacity: slideAnim.interpolate({
                         inputRange: [0.5, 0.7, 1],
                         outputRange: [0, 0, 1]
@@ -259,6 +266,22 @@ const HomeScreen = ({ navigation }) => {
                 </View>
               </View>
               <View style={styles.headerRightSpace} />
+              <View style={styles.headerActions}>
+                <Animated.View style={{
+                  transform: [{ scale: sortAnimation }]
+                }}>
+                  <TouchableOpacity
+                    style={[styles.sortButton, sortByRating && styles.sortButtonActive]}
+                    onPress={toggleSortByRating}
+                  >
+                    <Ionicons 
+                      name="star" 
+                      size={24} 
+                      color={sortByRating ? "#FFD700" : "#666"} 
+                    />
+                  </TouchableOpacity>
+                </Animated.View>
+              </View>
             </View>
 
             <CategoryFilter isWatchedScreen={showWatched} />
@@ -268,7 +291,8 @@ const HomeScreen = ({ navigation }) => {
                 style={{ 
                   ...StyleSheet.absoluteFillObject,
                   transform: [
-                    { translateX: unwatchedListPosition }
+                    { translateX: unwatchedListPosition },
+                    { scale: sortAnimation }
                   ]
                 }}
                 pointerEvents={showWatched ? "none" : "auto"}
@@ -338,7 +362,8 @@ const HomeScreen = ({ navigation }) => {
                 style={{ 
                   ...StyleSheet.absoluteFillObject,
                   transform: [
-                    { translateX: watchedListPosition }
+                    { translateX: watchedListPosition },
+                    { scale: sortAnimation }
                   ]
                 }}
                 pointerEvents={showWatched ? "auto" : "none"}
@@ -400,11 +425,15 @@ const HomeScreen = ({ navigation }) => {
               </Animated.View>
             </View>
 
-            <Animated.View style={{
-              transform: [{ scale: addBtnScale }],
-              shadowOpacity: addBtnShadow,
-              ...styles.addButton,
-            }}>
+            <Animated.View
+              style={[
+                styles.addButton,
+                {
+                  transform: [{ scale: addBtnScale }],
+                  shadowOpacity: addBtnShadow,
+                },
+              ]}
+            >
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPressIn={handleAddBtnPressIn}
@@ -421,7 +450,6 @@ const HomeScreen = ({ navigation }) => {
               onClose={() => {
                 setModalVisible(false);
                 setEditItem(null);
-                
               }} 
               editItem={editItem}
             />
@@ -494,6 +522,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 2,
   },
+  titleContainer: {
+    position: 'relative',
+    width: 150,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    marginLeft: -20,
+  },
   header: {
     color: "#E50914",
     fontSize: 42,
@@ -504,6 +541,8 @@ const styles = StyleSheet.create({
     textShadowColor: '#000',
     textShadowOffset: { width: 1.5, height: 1.5 },
     textShadowRadius: 3,
+    width: '100%',
+    paddingLeft: 0,
   },
   addButton: {
     position: "absolute",
@@ -519,9 +558,6 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     borderWidth: 0,
   },
-  addButtonAnimated: {
-    transform: [{ scale: 1 }],
-  },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -533,7 +569,26 @@ const styles = StyleSheet.create({
     color: '#666',
     fontSize: 18,
     fontFamily: 'Caveat-SemiBold',
-  }
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  sortButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1f1f1f',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  sortButtonActive: {
+    backgroundColor: '#2a2a2a',
+    borderColor: '#FFD700',
+  },
 });
 
 export default HomeScreen;
