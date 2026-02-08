@@ -29,6 +29,11 @@ export const fetchMovieTVInfo = async (title, type) => {
         genre: details.genres.map((g) => g.name).join(", "),
         actors: undefined,
         plot: details.overview,
+        genre: details.genres.map((g) => g.name).join(", "),
+        actors: undefined,
+        plot: details.overview,
+        tmdbId: item.id,
+        runtime: details.runtime || (details.episode_run_time ? details.episode_run_time[0] : null), // Runtime in minutes
       };
     }
 
@@ -66,13 +71,13 @@ export const fetchGameInfo = async (title) => {
     const data = await response.json();
     if (data.results && data.results.length > 0) {
       const game = data.results[0];
-      
+
       // Effettua una seconda chiamata per ottenere i dettagli completi del gioco, inclusa la descrizione
       const detailResponse = await fetch(
         `https://api.rawg.io/api/games/${game.id}?key=${RAWG_API_KEY}`
       );
       const gameDetails = await detailResponse.json();
-      
+
       return {
         posterUrl: game.background_image && game.background_image !== "N/A" ? game.background_image : null,
         year: game.released ? game.released.substring(0, 4) : "",
@@ -121,4 +126,90 @@ export const fetchMediaInfo = async (title, category) => {
     return fetchAnimeInfo(title);
   }
   return null;
+};
+
+// Function to fetch or find TMDB ID
+const getTMDBId = async (title, type) => {
+  try {
+    const tmdbType = type === "Film" ? "movie" : "tv";
+    const tmdbSearch = await fetch(
+      `https://api.themoviedb.org/3/search/${tmdbType}?api_key=73130b3a08f47771a9fb07f885ee9286&query=${encodeURIComponent(title)}&language=it-IT`
+    );
+    const tmdbData = await tmdbSearch.json();
+    if (tmdbData.results && tmdbData.results.length > 0) {
+      return tmdbData.results[0].id;
+    }
+  } catch (e) {
+    console.error("Error getting TMDB ID:", e);
+  }
+  return null;
+};
+
+export const fetchStreamingInfo = async (title, category, knownId = null) => {
+  if (category !== "Film" && category !== "Serie TV") return null;
+
+  try {
+    const tmdbType = category === "Film" ? "movie" : "tv";
+    let id = knownId;
+
+    if (!id) {
+      id = await getTMDBId(title, category);
+    }
+
+    if (!id) return null;
+
+    const response = await fetch(
+      `https://api.themoviedb.org/3/${tmdbType}/${id}/watch/providers?api_key=73130b3a08f47771a9fb07f885ee9286`
+    );
+    const data = await response.json();
+
+    if (data.results && data.results.IT) {
+      return data.results.IT; // Returns flatrate, rent, buy options for Italy
+    }
+    return null;
+  } catch (error) {
+    console.error("Error fetching streaming info:", error);
+    return null;
+  }
+};
+
+export const fetchTrailers = async (title, category, knownId = null) => {
+  if (category !== "Film" && category !== "Serie TV") return null;
+
+  try {
+    const tmdbType = category === "Film" ? "movie" : "tv";
+    let id = knownId;
+
+    if (!id) {
+      id = await getTMDBId(title, category);
+    }
+
+    if (!id) return null;
+
+    const response = await fetch(
+      `https://api.themoviedb.org/3/${tmdbType}/${id}/videos?api_key=73130b3a08f47771a9fb07f885ee9286&language=it-IT`
+    );
+    const data = await response.json();
+
+    let trailers = [];
+    if (data.results) {
+      trailers = data.results.filter(v => v.site === "YouTube" && v.type === "Trailer");
+
+      // Fallback to English trailers if no Italian ones
+      if (trailers.length === 0) {
+        const enResponse = await fetch(
+          `https://api.themoviedb.org/3/${tmdbType}/${id}/videos?api_key=73130b3a08f47771a9fb07f885ee9286&language=en-US`
+        );
+        const enData = await enResponse.json();
+        if (enData.results) {
+          trailers = enData.results.filter(v => v.site === "YouTube" && v.type === "Trailer");
+        }
+      }
+    }
+
+    return trailers.length > 0 ? `https://www.youtube.com/watch?v=${trailers[0].key}` : null;
+  } catch (error) {
+    console.error("Error fetching trailers:", error);
+    return null;
+  }
 };

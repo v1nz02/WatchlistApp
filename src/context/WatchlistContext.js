@@ -15,6 +15,11 @@ export const WatchlistProvider = ({ children }) => {
   const sortAnimation = useRef(new Animated.Value(1)).current;
   const flatListRef = useRef(null);
   const watchedFlatListRef = useRef(null);
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'grid'
+
+  const toggleViewMode = () => {
+    setViewMode(prev => prev === 'list' ? 'grid' : 'list');
+  };
 
   // Funzione per impostare il riferimento alla FlatList della schermata Watched
   const setWatchedFlatListRef = (ref) => {
@@ -35,7 +40,7 @@ export const WatchlistProvider = ({ children }) => {
         useNativeDriver: true,
         easing: Easing.out(Easing.cubic),
       }),
-      
+
       // Then scale up and add a small bounce effect
       Animated.spring(listTransitionAnim, {
         toValue: 1,
@@ -59,14 +64,14 @@ export const WatchlistProvider = ({ children }) => {
         useNativeDriver: true,
       }),
     ]).start();
-    
+
     // Scroll to top when filter changes for both flatLists
     setTimeout(() => {
       // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
       if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
         flatListRef.current.scrollToOffset({ offset: 0, animated: true });
       }
-      
+
       // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
       if (watchedFlatListRef.current && typeof watchedFlatListRef.current.scrollToOffset === 'function') {
         watchedFlatListRef.current.scrollToOffset({ offset: 0, animated: true });
@@ -77,7 +82,7 @@ export const WatchlistProvider = ({ children }) => {
   const loadWatchlistData = async () => {
     const loadedWatchlist = await loadWatchlist();
     setWatchlist(loadedWatchlist);
-    
+
     // Initialize animation values
     loadedWatchlist.forEach(item => {
       animatedValues[item.id] = new Animated.Value(1);
@@ -87,7 +92,7 @@ export const WatchlistProvider = ({ children }) => {
   const addItem = async (title, description, category) => {
     const id = Date.now().toString();
     animatedValues[id] = new Animated.Value(0);
-    
+
     let mediaData = null;
     mediaData = await fetchMediaInfo(title, category);
 
@@ -103,37 +108,39 @@ export const WatchlistProvider = ({ children }) => {
       rating: mediaData?.rating,
       totalSeasons: mediaData?.totalSeasons,
       genre: mediaData?.genre,
-      actors: mediaData?.actors
+      actors: mediaData?.actors,
+      tmdbId: mediaData?.tmdbId,
+      runtime: mediaData?.runtime,
     }, ...watchlist];
-    
+
     setWatchlist(newWatchlist);
     saveWatchlist(newWatchlist);
-    
+
     // Reset filter to show the new item if in a different category
     if (filterCategory !== null && filterCategory !== category) {
       setFilterCategory(null);
     }
-    
+
     // Scroll to top to show the new item
     if (flatListRef.current) {
       setTimeout(() => {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       }, 300);
     }
-    
+
     Animated.timing(animatedValues[id], {
       toValue: 1,
       duration: 600,
       useNativeDriver: true,
       easing: Easing.out(Easing.ease),
     }).start();
-    
+
     return id;
   };
 
   const removeItem = (id) => {
     const newWatchlist = watchlist.filter((item) => item.id !== id);
-    
+
     Animated.timing(animatedValues[id], {
       toValue: 0,
       duration: 350, // Durata leggermente aumentata per un'animazione più fluida
@@ -153,7 +160,7 @@ export const WatchlistProvider = ({ children }) => {
       remainingItems.forEach((item, index) => {
         item.animatedValue.setValue(0.85); // Valore iniziale più alto per un'animazione più sottile
         const delay = index * 40; // Delay ridotto per un'animazione più veloce
-        
+
         Animated.sequence([
           Animated.delay(delay),
           Animated.spring(item.animatedValue, {
@@ -173,25 +180,25 @@ export const WatchlistProvider = ({ children }) => {
   };
 
   const updateItem = async (updatedItem) => {
-    const newWatchlist = watchlist.map(item => 
+    const newWatchlist = watchlist.map(item =>
       item.id === updatedItem.id ? updatedItem : item
     );
-    
+
     setWatchlist(newWatchlist);
     saveWatchlist(newWatchlist);
-    
+
     // Reset filter se necessario per mostrare l'elemento aggiornato
     if (filterCategory !== null && filterCategory !== updatedItem.category) {
       setFilterCategory(null);
     }
-    
+
     return updatedItem.id;
   };
 
   const toggleWatched = (id, rating = null) => {
     const itemToUpdate = watchlist.find(item => item.id === id);
     if (!itemToUpdate) return;
-    
+
     // Toglia il valore watched e aggiunge il rating se fornito
     const updatedItem = {
       ...itemToUpdate,
@@ -199,21 +206,21 @@ export const WatchlistProvider = ({ children }) => {
       watchedAt: !itemToUpdate.watched ? new Date().toISOString() : null,
       userRating: !itemToUpdate.watched ? rating : null
     };
-    
-    const newWatchlist = watchlist.map(item => 
+
+    const newWatchlist = watchlist.map(item =>
       item.id === id ? updatedItem : item
     );
-    
+
     setWatchlist(newWatchlist);
     saveWatchlist(newWatchlist);
-    
+
     // Reset completo dell'animazione per garantire che la scala torni a 1
     if (animatedValues[id]) {
       // Prima resettiamo il valore a 1 immediatamente se era meno di 1
       if (animatedValues[id]._value < 1) {
         animatedValues[id].setValue(1);
       }
-      
+
       // Poi applichiamo un'animazione che evidenzi il cambio di stato
       Animated.sequence([
         // Scala leggermente verso il basso
@@ -237,7 +244,7 @@ export const WatchlistProvider = ({ children }) => {
   // Funzione per ordinare gli elementi per rating
   const sortItemsByRating = (items) => {
     if (!sortByRating) return items;
-    
+
     return [...items].sort((a, b) => {
       const ratingA = a.userRating || a.rating || 0;
       const ratingB = b.userRating || b.rating || 0;
@@ -298,7 +305,7 @@ export const WatchlistProvider = ({ children }) => {
       if (flatListRef.current && typeof flatListRef.current.scrollToOffset === 'function') {
         flatListRef.current.scrollToOffset({ offset: 0, animated: true });
       }
-      
+
       // Controlla che il riferimento esista e che abbia il metodo scrollToOffset
       if (watchedFlatListRef.current && typeof watchedFlatListRef.current.scrollToOffset === 'function') {
         watchedFlatListRef.current.scrollToOffset({ offset: 0, animated: true });
@@ -326,7 +333,10 @@ export const WatchlistProvider = ({ children }) => {
     setFilterCategory,
     setWatchedFlatListRef,
     sortByRating,
+    sortByRating,
     toggleSortByRating,
+    viewMode,
+    toggleViewMode,
   };
 
   return (
