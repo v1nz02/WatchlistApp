@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { WatchlistProvider } from "./src/context/WatchlistContext";
 import HomeScreen from "./src/screens/HomeScreen";
-import StatisticsScreen from "./src/screens/StatisticsScreen";
+
 import * as Font from 'expo-font';
 import * as SplashScreen from 'expo-splash-screen';
 import { View, Text, StatusBar } from 'react-native';
@@ -88,14 +88,7 @@ export default function App() {
                 animationEnabled: true
               }}
             />
-            <Stack.Screen
-              name="Statistics"
-              component={StatisticsScreen}
-              options={{
-                presentation: 'card',
-                animation: 'slide_from_right'
-              }}
-            />
+
           </Stack.Navigator>
         </NavigationContainer>
       </WatchlistProvider>

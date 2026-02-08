@@ -1,6 +1,7 @@
 import React, { useContext, useRef, useState } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Modal } from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Modal, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Swipeable } from 'react-native-gesture-handler';
 import { WatchlistContext } from '../../context/WatchlistContext';
 import StarRating from '../StarRating';
@@ -73,7 +74,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
   const animatedStyle = {
     opacity: Animated.multiply(animatedValues[item.id], opacity),
     transform: [
-      { 
+      {
         translateX: animatedValues[item.id].interpolate({
           inputRange: [0, 1],
           outputRange: [-100, 0],
@@ -104,7 +105,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
     return (
       <View style={styles.deleteContainer}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.deleteButton,
             { transform: [{ translateX }], opacity }
@@ -137,7 +138,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
     return (
       <View style={styles.watchedContainer}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.watchedButton,
             { transform: [{ translateX }], opacity }
@@ -151,6 +152,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
   };
 
   const handleToggleWatched = (id) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     if (!item.watched) {
       setShowRatingModal(true);
     } else {
@@ -159,6 +161,11 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
         swipeableRef.current.close();
       }
     }
+  };
+
+  const handleRemoveItem = (id) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    removeItem(id);
   };
 
   const handleRatingSubmit = () => {
@@ -185,20 +192,31 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
           ref={swipeableRef}
           renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
           renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX)}
-          onSwipeableRightOpen={() => removeItem(item.id)}
+          onSwipeableRightOpen={() => handleRemoveItem(item.id)}
           onSwipeableLeftOpen={() => handleToggleWatched(item.id)}
           rightThreshold={90}
           leftThreshold={90}
           containerStyle={styles.swipeableContainer}
           useNativeAnimations={true}
+          friction={2}
+          overshootFriction={8}
+          activeOffsetX={[-20, 20]}
+          failOffsetY={[-15, 15]}
         >
-          <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(item)}>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => onPress(item)}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }}
+            delayLongPress={200}
+          >
             <View style={styles.item}>
               <View style={styles.itemContent}>
                 <View style={styles.titleContainer}>
                   <Text style={styles.title}>{item.title}</Text>
                   {item.year && <Text style={styles.year}>({item.year})</Text>}
-                  
+
                   {/* Indicatore di stato "Visto" */}
                   {item.watched && (
                     <View style={styles.watchedIndicator}>
@@ -282,33 +300,49 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
         animationType="fade"
         onRequestClose={handleRatingCancel}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Valuta {item.title}</Text>
-            <View style={styles.starRatingContainer}>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleRatingCancel}
+        >
+          <Animated.View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle} numberOfLines={1}>Valuta "{item.title}"</Text>
+              <Text style={styles.modalSubtitle}>Hai visto questo contenuto?</Text>
+            </View>
+
+            <View style={styles.starRatingWrapper}>
               <StarRating
                 rating={tempRating}
-                onRatingChange={setTempRating}
-                size={28}
+                onRatingChange={(rating) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setTempRating(rating);
+                }}
+                size={32}
                 isUserRating={true}
               />
+              <Text style={styles.ratingValueText}>{tempRating}/10</Text>
             </View>
+
             <View style={styles.modalButtons}>
               <TouchableOpacity
                 style={[styles.modalButton, styles.cancelButton]}
                 onPress={handleRatingCancel}
               >
-                <Text style={styles.buttonText}>Annulla</Text>
+                <Text style={styles.cancelButtonText}>Annulla</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.submitButton]}
-                onPress={handleRatingSubmit}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  handleRatingSubmit();
+                }}
               >
-                <Text style={styles.buttonText}>Conferma</Text>
+                <Text style={styles.submitButtonText}>Conferma</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
+          </Animated.View>
+        </TouchableOpacity>
       </Modal>
     </>
   );
@@ -474,50 +508,81 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
-    backgroundColor: '#1f1f1f',
-    borderRadius: 20,
-    padding: 20,
-    width: '90%',
-    maxWidth: 400,
+    backgroundColor: '#1A1A1A',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
     alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+    width: '100%',
   },
   modalTitle: {
     color: '#fff',
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: 8,
   },
-  starRatingContainer: {
+  modalSubtitle: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  starRatingWrapper: {
     width: '100%',
-    paddingHorizontal: 10,
-    marginBottom: 10,
+    alignItems: 'center',
+    marginBottom: 32,
+    backgroundColor: '#222',
+    padding: 16,
+    borderRadius: 16,
+  },
+  ratingValueText: {
+    color: '#FFA500',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 12,
   },
   modalButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     width: '100%',
-    marginTop: 20,
-    paddingHorizontal: 10,
+    gap: 12,
   },
   modalButton: {
-    padding: 12,
-    borderRadius: 10,
-    minWidth: 100,
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   cancelButton: {
-    backgroundColor: '#666',
+    backgroundColor: '#333',
   },
   submitButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#E50914',
   },
-  buttonText: {
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButtonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',

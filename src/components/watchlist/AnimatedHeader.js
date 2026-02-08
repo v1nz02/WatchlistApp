@@ -118,12 +118,7 @@ const AnimatedHeader = ({
                 </TouchableOpacity>
 
                 {/* Statistics Button */}
-                <TouchableOpacity
-                    style={styles.actionButton}
-                    onPress={() => navigation.navigate('Statistics')}
-                >
-                    <Ionicons name="stats-chart" size={24} color="#666" />
-                </TouchableOpacity>
+
 
                 {/* Sort Button */}
                 <Animated.View style={{

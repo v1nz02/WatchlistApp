@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 5,
-    flexWrap: 'nowrap',
+    flexWrap: 'wrap', // Permetti il wrap per andare a capo
     maxWidth: '100%',
   },
   starButton: {

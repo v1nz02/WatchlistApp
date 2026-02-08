@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useRef } from 'react';
 import { Animated, Easing } from 'react-native';
 import { loadWatchlist, saveWatchlist } from '../services/storageService';
-import { fetchMediaInfo } from '../services/mediaService';
+import { fetchMediaInfo, getMediaDetails } from '../services/mediaService';
 
 export const WatchlistContext = createContext();
 
@@ -56,6 +56,7 @@ export const WatchlistProvider = ({ children }) => {
         toValue: 0.9,
         duration: 200,
         useNativeDriver: true,
+        easing: Easing.out(Easing.ease),
       }),
       Animated.spring(filterAnimation, {
         toValue: 1,
@@ -89,16 +90,20 @@ export const WatchlistProvider = ({ children }) => {
     });
   };
 
-  const addItem = async (title, description, category) => {
+  const addItem = async (title, description, category, tmdbId = null) => {
     const id = Date.now().toString();
     animatedValues[id] = new Animated.Value(0);
 
     let mediaData = null;
-    mediaData = await fetchMediaInfo(title, category);
+    if (tmdbId) {
+      mediaData = await getMediaDetails(tmdbId, category);
+    } else {
+      mediaData = await fetchMediaInfo(title, category);
+    }
 
     const newWatchlist = [{
       id,
-      title,
+      title: mediaData?.title || title, // Use fetched title if available
       description: description || mediaData?.plot || "",
       category,
       watched: false,
@@ -109,7 +114,7 @@ export const WatchlistProvider = ({ children }) => {
       totalSeasons: mediaData?.totalSeasons,
       genre: mediaData?.genre,
       actors: mediaData?.actors,
-      tmdbId: mediaData?.tmdbId,
+      tmdbId: mediaData?.tmdbId || tmdbId,
       runtime: mediaData?.runtime,
     }, ...watchlist];
 

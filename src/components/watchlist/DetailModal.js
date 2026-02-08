@@ -12,6 +12,7 @@ import {
   Platform
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { fetchStreamingInfo, fetchTrailers } from '../../services/mediaService';
 
 const DetailModal = ({ item, visible, onClose, onEdit }) => {
@@ -47,6 +48,7 @@ const DetailModal = ({ item, visible, onClose, onEdit }) => {
 
   const handleEdit = () => {
     if (onEdit && typeof onEdit === 'function') {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       onClose(); // Close modal before opening edit
       onEdit(item);
     }
@@ -54,6 +56,7 @@ const DetailModal = ({ item, visible, onClose, onEdit }) => {
 
   const openTrailer = () => {
     if (trailerUrl) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
       Linking.openURL(trailerUrl).catch(err => console.error("Couldn't load page", err));
     }
   };
