@@ -1,11 +1,16 @@
-import React, { useContext } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, Image, Animated } from 'react-native';
+import React, { useContext, useRef, useState } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, Image, Animated, Modal, Dimensions } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { Swipeable } from 'react-native-gesture-handler';
 import { WatchlistContext } from '../../context/WatchlistContext';
+import StarRating from '../StarRating';
 
 const WatchlistItem = ({ item, index, scrollY, onPress }) => {
-  const { animatedValues, removeItem } = useContext(WatchlistContext);
+  const { animatedValues, removeItem, toggleWatched } = useContext(WatchlistContext);
+  const swipeableRef = useRef(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [tempRating, setTempRating] = useState(item.userRating || 0);
 
   if (!animatedValues[item.id]) {
     animatedValues[item.id] = new Animated.Value(1);
@@ -13,54 +18,78 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
   // Calcoli per le animazioni
   const itemHeight = 200;
+  // Correzione: Assicuriamo che l'inputRange sia sempre crescente
   const inputRange = [
     -1,
     0,
+    itemHeight * Math.max(0, index - 0.3), // Garantisce che sia sempre >= 0
     itemHeight * index,
     itemHeight * (index + 0.5),
-    itemHeight * (index + 1)
+    itemHeight * (index + 1),
+    itemHeight * (index + 2)
   ];
 
+  // Animazione opacità più pronunciata
   const opacity = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 0.8, 0.5],
+    outputRange: [1, 1, 1, 1, 0.8, 0.6, 0.4], // Valori più bassi per un effetto più evidente
     extrapolate: 'clamp',
   });
 
+  // Effetto di scaling più pronunciato
   const scale = scrollY.interpolate({
     inputRange,
-    outputRange: [1, 1, 1, 0.98, 0.95],
+    outputRange: [1, 1, 1, 1, 0.95, 0.9, 0.85], // Riduzione di scala più evidente
     extrapolate: 'clamp',
   });
 
+  // Movimento verticale più accentuato
   const translateY = scrollY.interpolate({
     inputRange,
-    outputRange: [0, 0, 0, -5, -10],
+    outputRange: [0, 0, 0, 0, -15, -30, -45], // Spostamento verticale maggiore
+    extrapolate: 'clamp',
+  });
+
+  // Rotazione più evidente per un effetto 3D più pronunciato
+  const rotate = scrollY.interpolate({
+    inputRange,
+    outputRange: ['0deg', '0deg', '0deg', '0deg', '1deg', '2deg', '3deg'], // Rotazione più accentuata
+    extrapolate: 'clamp',
+  });
+
+  // Rotazione Y per un effetto ancora più pronunciato
+  const rotateY = scrollY.interpolate({
+    inputRange,
+    outputRange: ['0deg', '0deg', '0deg', '0deg', '-1deg', '-2deg', '-3deg'], // Leggera rotazione sull'asse Y
+    extrapolate: 'clamp',
+  });
+
+  // Shadow effect più evidente durante lo scroll
+  const shadowOpacity = scrollY.interpolate({
+    inputRange,
+    outputRange: [0.25, 0.25, 0.25, 0.25, 0.35, 0.45, 0.1], // Ombre più evidenti durante la transizione
     extrapolate: 'clamp',
   });
 
   const animatedStyle = {
     opacity: Animated.multiply(animatedValues[item.id], opacity),
     transform: [
-      { 
+      {
         translateX: animatedValues[item.id].interpolate({
           inputRange: [0, 1],
           outputRange: [-100, 0],
         }),
       },
-      { 
-        scale: Animated.multiply(
-          animatedValues[item.id].interpolate({
-            inputRange: [0, 0.8, 1],
-            outputRange: [0.8, 1.05, 1],
-          }),
-          scale
-        )
-      },
-      { translateY }
+      { scale: Animated.multiply(animatedValues[item.id], scale) },
+      { translateY },
+      { rotateX: rotate },
+      { rotateY: rotateY }, // Aggiunto rotateY per effetto 3D più evidente
+      { perspective: 1000 } // Applicato direttamente qui per migliorare l'effetto 3D
     ],
+    shadowOpacity: shadowOpacity,
   };
 
+  // Renderizza l'azione di eliminazione a destra
   const renderRightActions = (progress, dragX) => {
     const translateX = dragX.interpolate({
       inputRange: [-100, 0],
@@ -76,7 +105,7 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
 
     return (
       <View style={styles.deleteContainer}>
-        <Animated.View 
+        <Animated.View
           style={[
             styles.deleteButton,
             { transform: [{ translateX }], opacity }
@@ -89,70 +118,242 @@ const WatchlistItem = ({ item, index, scrollY, onPress }) => {
     );
   };
 
+  // Nuovo: renderizza l'azione "Visto" a sinistra
+  const renderLeftActions = (progress, dragX) => {
+    const translateX = dragX.interpolate({
+      inputRange: [0, 100],
+      outputRange: [-100, 0],
+      extrapolate: 'clamp',
+    });
+
+    const opacity = dragX.interpolate({
+      inputRange: [0, 50, 100],
+      outputRange: [0, 0.5, 1],
+      extrapolate: 'clamp',
+    });
+
+    const color = item.watched ? '#E50914' : '#4CAF50';
+    const iconName = item.watched ? 'remove-done' : 'done';
+    const text = item.watched ? 'Non visto' : 'Visto';
+
+    return (
+      <View style={styles.watchedContainer}>
+        <Animated.View
+          style={[
+            styles.watchedButton,
+            { transform: [{ translateX }], opacity }
+          ]}
+        >
+          <MaterialIcons name={iconName} size={28} color={color} />
+          <Text style={[styles.watchedText, { color }]}>{text}</Text>
+        </Animated.View>
+      </View>
+    );
+  };
+
+  const handleToggleWatched = (id) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    if (!item.watched) {
+      setShowRatingModal(true);
+    } else {
+      toggleWatched(id);
+      if (swipeableRef.current) {
+        swipeableRef.current.close();
+      }
+    }
+  };
+
+  const handleRemoveItem = (id) => {
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    removeItem(id);
+  };
+
+  const handleRatingSubmit = () => {
+    toggleWatched(item.id, tempRating);
+    setShowRatingModal(false);
+    setTempRating(0);
+    if (swipeableRef.current) {
+      swipeableRef.current.close();
+    }
+  };
+
+  const handleRatingCancel = () => {
+    setShowRatingModal(false);
+    setTempRating(0);
+    if (swipeableRef.current) {
+      swipeableRef.current.close();
+    }
+  };
+
   return (
-    <Animated.View style={[styles.itemWrapper, animatedStyle]}>
-      <Swipeable
-        renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
-        onSwipeableRightOpen={() => removeItem(item.id)}
-        rightThreshold={50}
-        containerStyle={styles.swipeableContainer}
-        useNativeAnimations={true}
-      >
-        <TouchableOpacity activeOpacity={0.9} onPress={() => onPress(item)}>
-          <View style={styles.item}>
-            <View style={styles.itemContent}>
-              <View style={styles.titleContainer}>
-                <Text style={styles.title}>{item.title}</Text>
-                {item.year && <Text style={styles.year}>({item.year})</Text>}
-              </View>
-              <View style={styles.contentRow}>
-                {item.posterUrl && (
-                  <Image
-                    source={{ uri: item.posterUrl }}
-                    style={styles.poster}
-                    resizeMode="cover"
-                  />
-                )}
-                <View style={styles.itemTextContent}>
-                  <View style={styles.itemTopRow}>
-                    {item.rating && (
-                      <View style={styles.ratingContainer}>
-                        <MaterialIcons name="star" size={16} color="#FFD700" />
-                        <Text style={styles.rating}>{item.rating}</Text>
-                      </View>
-                    )}
-                    {item.totalSeasons && (
-                      <View style={styles.seasonsContainer}>
-                        <MaterialIcons name="tv" size={16} color="#aaa" />
-                        <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
-                      </View>
-                    )}
-                    <Text style={styles.itemCategory}>{item.category}</Text>
-                  </View>
-                  {item.genre && (
-                    <View style={styles.genreContainer}>
-                      <Text style={styles.genre}>{item.genre}</Text>
+    <>
+      <Animated.View style={[styles.itemWrapper, animatedStyle]}>
+        <Swipeable
+          ref={swipeableRef}
+          renderRightActions={(progress, dragX) => renderRightActions(progress, dragX)}
+          renderLeftActions={(progress, dragX) => renderLeftActions(progress, dragX)}
+          onSwipeableRightOpen={() => handleRemoveItem(item.id)}
+          onSwipeableLeftOpen={() => handleToggleWatched(item.id)}
+          rightThreshold={90}
+          leftThreshold={90}
+          containerStyle={styles.swipeableContainer}
+          useNativeAnimations={true}
+          friction={2}
+          overshootFriction={8}
+          activeOffsetX={[-20, 20]}
+          failOffsetY={[-15, 15]}
+        >
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={() => onPress(item)}
+            onLongPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+            }}
+            delayLongPress={200}
+          >
+            <View style={styles.item}>
+              <View style={styles.itemContent}>
+                <View style={styles.titleContainer}>
+                  <Text style={styles.title}>{item.title}</Text>
+                  {item.year && <Text style={styles.year}>({item.year})</Text>}
+
+                  {/* Indicatore di stato "Visto" */}
+                  {item.watched && (
+                    <View style={styles.watchedIndicator}>
+                      <MaterialIcons name="done" size={16} color="#4CAF50" />
                     </View>
                   )}
-                  {item.description && (
-                    <Text style={styles.description} numberOfLines={3}>
-                      {item.description}
-                    </Text>
+                </View>
+                <View style={styles.contentRow}>
+                  {item.posterUrl && (
+                    <Image
+                      source={{ uri: item.posterUrl }}
+                      style={[
+                        styles.poster,
+                        item.watched && styles.posterWatched
+                      ]}
+                      resizeMode="cover"
+                    />
                   )}
+                  <View style={styles.itemTextContent}>
+                    <View style={styles.itemTopRow}>
+                      {item.userRating ? (
+                        <View style={styles.ratingContainer}>
+                          <StarRating
+                            rating={item.userRating}
+                            size={20}
+                            isUserRating={true}
+                            readOnly={true}
+                            compact={true}
+                          />
+                          <Text style={[styles.rating, { color: '#FFA500', fontSize: 16, fontWeight: 'bold' }]}>{item.userRating}/10</Text>
+                        </View>
+                      ) : item.rating ? (
+                        <View style={styles.ratingContainer}>
+                          <StarRating
+                            rating={item.rating}
+                            size={16}
+                            readOnly={true}
+                            compact={true}
+                          />
+                          <Text style={styles.rating}>{item.rating}</Text>
+                        </View>
+                      ) : (
+                        <View style={styles.ratingContainer}>
+                          <StarRating
+                            rating={0}
+                            size={16}
+                            readOnly={true}
+                            compact={true}
+                          />
+                        </View>
+                      )}
+                      {item.totalSeasons && (
+                        <View style={styles.seasonsContainer}>
+                          <MaterialIcons name="tv" size={16} color="#aaa" />
+                          <Text style={styles.seasons}>{item.totalSeasons} stagioni</Text>
+                        </View>
+                      )}
+                      <Text style={styles.itemCategory}>{item.category}</Text>
+                    </View>
+                    {item.genre && (
+                      <View style={styles.genreContainer}>
+                        <Text style={styles.genre}>{item.genre}</Text>
+                      </View>
+                    )}
+                    {item.description && (
+                      <Text style={styles.description} numberOfLines={3}>
+                        {item.description}
+                      </Text>
+                    )}
+                  </View>
                 </View>
               </View>
             </View>
-          </View>
+          </TouchableOpacity>
+        </Swipeable>
+      </Animated.View>
+
+      <Modal
+        visible={showRatingModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleRatingCancel}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={handleRatingCancel}
+        >
+          <Animated.View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle} numberOfLines={1}>Valuta "{item.title}"</Text>
+              <Text style={styles.modalSubtitle}>Hai visto questo contenuto?</Text>
+            </View>
+
+            <View style={styles.starRatingWrapper}>
+              <StarRating
+                rating={tempRating}
+                onRatingChange={(rating) => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  setTempRating(rating);
+                }}
+                size={32}
+                isUserRating={true}
+              />
+              <Text style={styles.ratingValueText}>{tempRating}/10</Text>
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={handleRatingCancel}
+              >
+                <Text style={styles.cancelButtonText}>Annulla</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.submitButton]}
+                onPress={() => {
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                  handleRatingSubmit();
+                }}
+              >
+                <Text style={styles.submitButtonText}>Conferma</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
         </TouchableOpacity>
-      </Swipeable>
-    </Animated.View>
+      </Modal>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   itemWrapper: {
-    marginVertical: 6,
-    transform: [{ perspective: 1000 }],
+    marginVertical: 10, // Aumentato per dare più spazio alle animazioni
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 }, // Ombre più pronunciate
+    shadowRadius: 12,
   },
   swipeableContainer: {
     backgroundColor: 'transparent',
@@ -160,16 +361,16 @@ const styles = StyleSheet.create({
   item: {
     backgroundColor: "#1f1f1f",
     marginVertical: 4,
-    borderRadius: 12,
-    elevation: 4,
+    borderRadius: 16, // Bordi più arrotondati
+    elevation: 8, // Elevazione maggiore per Android
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 }, // Ombra più pronunciata
+    shadowOpacity: 0.3, // Opacità dell'ombra aumentata
+    shadowRadius: 6, // Raggio dell'ombra aumentato
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#333',
-    transform: [{ scale: 1 }],
+    backfaceVisibility: 'hidden', // Migliora gli effetti 3D
   },
   itemContent: {
     padding: 12,
@@ -198,6 +399,11 @@ const styles = StyleSheet.create({
     width: 80,
     height: 120,
     borderRadius: 8,
+  },
+  posterWatched: {
+    opacity: 0.7,
+    borderWidth: 2,
+    borderColor: '#4CAF50',
   },
   itemTextContent: {
     flex: 1,
@@ -270,6 +476,116 @@ const styles = StyleSheet.create({
     color: '#aaa',
     fontSize: 14,
     fontStyle: 'italic',
+  },
+  // Nuovi stili per la funzionalità "Visto"
+  watchedContainer: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+    backgroundColor: 'transparent',
+  },
+  watchedButton: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingLeft: 20,
+  },
+  watchedText: {
+    fontSize: 12,
+    marginTop: 4,
+    fontWeight: '600',
+  },
+  watchedIndicator: {
+    marginLeft: 8,
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderRadius: 10,
+    padding: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: '#1A1A1A',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 340,
+    alignItems: 'center',
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 20,
+    elevation: 10,
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+    width: '100%',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    color: '#aaa',
+    fontSize: 14,
+  },
+  starRatingWrapper: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 32,
+    backgroundColor: '#222',
+    padding: 16,
+    borderRadius: 16,
+  },
+  ratingValueText: {
+    color: '#FFA500',
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginTop: 12,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#333',
+  },
+  submitButton: {
+    backgroundColor: '#E50914',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  submitButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
